@@ -46,7 +46,7 @@ fn standard_temperature_tests () {
     assert_eq!(temp, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
 }
 
-/// Test for Standard pressure.
+/// Test for Standard pressure..
 #[test]
 fn standard_pressure_tests () {
     // sea level
