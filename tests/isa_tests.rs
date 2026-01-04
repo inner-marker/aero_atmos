@@ -80,3 +80,42 @@ fn standard_pressure_tests () {
     assert_eq!(pressure, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
 
 }
+
+/// Test pressure ratios from altitude.
+#[test]
+fn standard_pressure_ratio_tests () {
+    // sea level
+    let altitude = Length::new::<kilometer>(0.0);
+    let pressure_ratio = aero_atmos::InternationalStandardAtmosphere::altitude_to_pressure_ratio(altitude).unwrap();
+    assert_eq_precision!(pressure_ratio, 1.0, PRECISION);
+
+    // mid range, not on a layer boundary
+    // H = 20 km => 5.40328e–2
+    let altitude = Length::new::<kilometer>(20.0);
+    let pressure_ratio = aero_atmos::InternationalStandardAtmosphere::altitude_to_pressure_ratio(altitude).unwrap();
+    assert_eq_precision!(pressure_ratio, 5.40328e-2, PRECISION);
+
+    // Low end of the range
+    // Doc7488 Table 2 value at H = -4.950 km => 1.74431
+    let altitude = Length::new::<kilometer>(-4.950);
+    let pressure_ratio = aero_atmos::InternationalStandardAtmosphere::altitude_to_pressure_ratio(altitude).unwrap();
+    assert_eq_precision!(pressure_ratio, 1.74431, PRECISION);
+
+    // High end of the range
+    // Doc7488 Table 2 value at 79.800 km => 9.05575e-6
+    let altitude = Length::new::<kilometer>(79.800);
+    let pressure_ratio = aero_atmos::InternationalStandardAtmosphere::altitude_to_pressure_ratio(altitude).unwrap();
+    assert_eq_precision!(pressure_ratio, 9.05575e-6, PRECISION);
+
+    // Bottom of the range
+    // H = -5 km => 1.75364
+    let altitude = Length::new::<kilometer>(-5.0);
+    let pressure_ratio = aero_atmos::InternationalStandardAtmosphere::altitude_to_pressure_ratio(altitude).unwrap();
+    assert_eq_precision!(pressure_ratio, 1.75364, PRECISION);
+
+    // Top of the range
+    // H = 80.0 km => 8.74682e-6
+    let altitude = Length::new::<kilometer>(80.0);
+    let pressure_ratio = aero_atmos::InternationalStandardAtmosphere::altitude_to_pressure_ratio(altitude).unwrap();
+    assert_eq_precision!(pressure_ratio, 8.74682e-6, PRECISION);
+}

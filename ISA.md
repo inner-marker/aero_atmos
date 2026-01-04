@@ -5,8 +5,8 @@
 Geopotential altitude (H) __to__ ...
 
 - [x] Temperature ($T$)
-- [ ] Pressure ($P$)
-- [ ] Pressure Ratio ($p/P_0$)
+- [x] Pressure ($P$)
+- [x] Pressure Ratio ($p/P_0$)
 - [ ] Density ($\rho$, rho)
 - [ ] Density Ratio ($ \rho/\rho_0 $)
 - [ ] Square Root of Density Ratio ($ \sqrt{\rho/\rho_0} $)

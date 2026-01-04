@@ -417,6 +417,40 @@ impl InternationalStandardAtmosphere {
 
     }
 
+    /// Pressure ratio
+    /// 
+    /// Returns the pressure ratio (p/P₀) for a given geopotential altitude.
+    /// 
+    /// The valid range for geopotential altitude is -5 km to 80 km.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+    /// use uom::si::f64::Length;
+    /// use uom::si::length::kilometer;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// let altitude = Length::new::<kilometer>(5.0);
+    /// let pressure_ratio = InternationalStandardAtmosphere::altitude_to_pressure_ratio(altitude).unwrap();
+    /// assert_eq_precision!(pressure_ratio, 0.5329, PRECISION);
+    /// 
+    /// // out of range example
+    /// let altitude_out_of_range = Length::new::<kilometer>(100.0); // 100 km is too high
+    /// let pressure_ratio_result = InternationalStandardAtmosphere::altitude_to_pressure_ratio(altitude_out_of_range);
+    /// assert_eq!(pressure_ratio_result, Err(IsaError::InputOutOfRange));
+    /// ```
+    pub fn altitude_to_pressure_ratio(geopotential_altitude: uom::si::f64::Length) -> Result<f64, IsaError> {
+        let p = Self::altitude_to_pressure(geopotential_altitude)?.get::<pascal>();
+        let p0 = Self::constant_sea_level_standard_pressure().get::<pascal>();
+        
+        // unlikely to be divide by zero, but just in case
+        if p0 == 0.0 {return Err(IsaError::ComputationError);}
+        
+        Ok(p / p0)
+    }
+
     /// The earth's radius.
     /// 
     /// This function returns the constant earth radius used in the ISA model.
@@ -514,6 +548,25 @@ impl InternationalStandardAtmosphere {
     /// The symbol is `σ` (sigma).
     pub fn constant_effective_collision_diameter_air_molecule() -> uom::si::f64::Length {
         uom::si::f64::Length::new::<uom::si::length::meter>(3.621e-10)
+    }
+
+    /// Sea level standard pressure.
+    /// 
+    /// Returns the sea level standard pressure used in the ISA model.
+    /// 
+    /// The symbol is `P_0`.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Pressure;
+    /// use uom::si::pressure::hectopascal;
+    ///
+    /// let sl_pressure = InternationalStandardAtmosphere::constant_sea_level_standard_pressure();
+    /// assert_eq!(sl_pressure.get::<hectopascal>(), 1013.25);
+    /// ```
+    pub fn constant_sea_level_standard_pressure() -> uom::si::f64::Pressure {
+        uom::si::f64::Pressure::new::<uom::si::pressure::pascal>(101_325.0)
     }
 
 }
