@@ -36,13 +36,13 @@ where $ E $ is the Earth's radius.
 
 These are the specific numerical values for the constants used in the pressure equations above. These are not necessarilty the same as those used in the ICAO Doc 7488/3.
 
-| Symbol | Name                          | Value                     | Unit                   |
-|--------|-------------------------------|---------------------------|------------------------|
-| $ M $  | Molar mass of Earth's air | 28_964.42 | g/mol |
-| $ R $  | Universal gas constant | 831.325 | J/(kmol·K) |
-| $ g $  |  Standard gravity at sea level | 9.806_65 | m/s² |
-| $ R_e $ | Earth's radius | 6_356_766 | m |
-| $ P_b $ | Base pressure at layer base  | Varies by layer, 101_325 @ SL | Pa |
-| $ L $  | Temperature lapse rate | Varies by layer, -6.5 @ SL | K/km |
-| $ T_b $ | Base temperature at layer base | Varies by layer, 288.15 @ SL | K |
-| $ H_b $ | Base geopotential altitude at layer base | Varies by layer, 0 @ SL | m |
+|Symbol|Name|Value|Unit|
+|------|----|----|-----|
+|$ M $|Molar mass of Earth's air|28_964.42|g/mol|
+|$ R $|Universal gas constant|831.325|J/(kmol·K)|
+|$ g $|Standard gravity at sea level|9.806_65|m/s²|
+|$ R_e $|Earth's radius|6_356_766|m|
+|$ P_b $|Base pressure at layer base|Varies by layer, 101_325 @ SL|Pa|
+|$ L $|Temperature lapse rate|Varies by layer, -6.5 @ SL|K/km|
+|$ T_b $|Base temperature at layer base|Varies by layer, 288.15 @ SL|K|
+|$ H_b $|Base geopotential altitude at layer base|Varies by layer, 0 @ SL|m|

@@ -6,7 +6,6 @@ pub mod intl_standard_atmos;
 pub use intl_standard_atmos::InternationalStandardAtmosphere;
 
 pub mod macros;
-pub use macros::*;
 
 /// Precision for floating point comparisons in tests. 
 /// 

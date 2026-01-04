@@ -2,12 +2,12 @@
 //! 
 //! This module provides functions and data structures to model the 1993 International Standard Atmosphere (ISA) as defined by ICAO Doc 7488/3.
 
-use uom::si::f64::*;
+// use uom::si::f64::*;
 use uom::si::length::*;
 use uom::si::pressure::pascal;
-use uom::si::thermodynamic_temperature::*;
-use uom::si::acceleration::*;
-use uom::si::molar_mass::*;
+// use uom::si::thermodynamic_temperature::*;
+// use uom::si::acceleration::*;
+// use uom::si::molar_mass::*;
 
 
 /// Struuct for the ISA
@@ -522,7 +522,7 @@ impl InternationalStandardAtmosphere {
 mod tests {
     use super::*;
     use uom::si::length::kilometer;
-    use uom::si::thermodynamic_temperature::kelvin;
+    // use uom::si::thermodynamic_temperature::kelvin;
     use uom::si::pressure::pascal;
     use crate::PRECISION;
     use crate::assert_eq_precision;
@@ -533,16 +533,16 @@ mod tests {
         let input_alt: f64 = 11.466;
         let desired_pressure = 210.3 * 100.0; // Pa (Doc 7488/3 Table 7 gives hPa)
         let altitude = uom::si::f64::Length::new::<kilometer>(input_alt);
-        let pressure = InternationalStandardAtmosphere::altitude_to_pressure(altitude).unwrap();
-        println!("Pressure at {} km: Desired {:.1} Pa, Calculated {:.1} Pa", input_alt, desired_pressure, pressure.get::<pascal>());
-        assert_eq_precision!(pressure.get::<pascal>(), desired_pressure, PRECISION);
+        let pressure = InternationalStandardAtmosphere::altitude_to_pressure(altitude).unwrap().value;
+        println!("Pressure at {} km: Desired {:.1} Pa, Calculated {:.1} Pa", input_alt, desired_pressure, pressure);
+        assert_eq_precision!(pressure, uom::si::f64::Pressure::new::<pascal>(desired_pressure).value, PRECISION);
 
         let input_alt:f64 = 31.985; // kilometers
         let desired_pressure = 8.70 * 100.0; // Pa
         let altitude = uom::si::f64::Length::new::<kilometer>(input_alt);
-        let pressure = InternationalStandardAtmosphere::altitude_to_pressure(altitude).unwrap();
-        println!("Pressure at {} km: Desired {:.2} Pa, Calculated {:.2} Pa", input_alt, desired_pressure, pressure.get::<pascal>());
-        assert_eq_precision!(pressure.get::<pascal>(), desired_pressure, PRECISION);
+        let pressure = InternationalStandardAtmosphere::altitude_to_pressure(altitude).unwrap().value;
+        println!("Pressure at {} km: Desired {:.2} Pa, Calculated {:.2} Pa", input_alt, desired_pressure, pressure);
+        assert_eq_precision!(pressure, uom::si::f64::Pressure::new::<pascal>(desired_pressure).value, PRECISION);
     }
 
 }
