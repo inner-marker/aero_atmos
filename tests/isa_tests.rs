@@ -1,6 +1,6 @@
 //! These are tests for the ISA atmospheric model
 
-use aero_atmos::intl_standard_atmos::IsaError;
+use aero_atmos::{assert_eq_sigfigs, intl_standard_atmos::IsaError};
 use uom::si::{length::*, pressure::hectopascal};
 
 // use aero_atmos::{InternationalStandardAtmosphere};
@@ -13,7 +13,7 @@ fn standard_temperature_tests () {
     // test data (geopotential altitude in feet, temperature in kelvin)
     // Table 4 from Doc7488
     let test_data = [
-        (-16_250.0,  320.325),    // very low in the range
+        (-16_250.0,  320.345),    // very low in the range
         (      0.0,  288.150),    // sea level
         ( 16_000.0,  256.451),    // mid range
         ( 50_000.0,  216.650),    // mid range
@@ -25,6 +25,7 @@ fn standard_temperature_tests () {
         let length = uom::si::f64::Length::new::<uom::si::length::foot>(h_ft);
         let temp = aero_atmos::InternationalStandardAtmosphere::altitude_to_temperature(length).unwrap().value;
         assert_eq_precision!(temp, temp_expected, PRECISION);
+        assert_eq_sigfigs!(temp, temp_expected, 6);
     }
 
     // out of bounds low

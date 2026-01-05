@@ -46,14 +46,14 @@ macro_rules! assert_eq_precision {
 /// use aero_atmos::assert_eq_sigfigs;
 /// 
 /// assert_eq_sigfigs!(1.11111, 1.11222, 3); // <- will pass     (1.11  == 1.11)
-/// // assert_eq_sigfigs!(1.11111, 1.11222, 4); // <- would fail (1.111 != 1.112)
+/// assert_eq_sigfigs!(1.1118, 1.1122, 4); // <- will pass    (1.112 == 1.112)
 /// ```
 #[macro_export]
 macro_rules! assert_eq_sigfigs {
     ($left:expr, $right:expr, $sigfigs:expr) => {
         use rust_decimal::prelude::*;
-        let left_rounded = rust_decimal::Decimal::from_f64($left).unwrap().round_sf($sigfigs).unwrap();
-        let right_rounded = rust_decimal::Decimal::from_f64($right).unwrap().round_sf($sigfigs).unwrap();
+        let left_rounded = rust_decimal::Decimal::from_f64($left).unwrap().round_sf_with_strategy($sigfigs, RoundingStrategy::MidpointAwayFromZero).unwrap();
+        let right_rounded = rust_decimal::Decimal::from_f64($right).unwrap().round_sf_with_strategy($sigfigs, RoundingStrategy::MidpointAwayFromZero).unwrap();
 
         if left_rounded != right_rounded {
             panic!("Assertion Failed. Rounded values are not equal.
