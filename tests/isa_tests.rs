@@ -249,3 +249,33 @@ fn standard_speed_of_sound_tests () {
     assert_eq!(speed_of_sound, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
     
 }
+
+/// Dynamic viscosity tests
+#[test]
+fn standard_dynamic_viscosity_tests () {
+    // Test values from Doc7488, Table 4, given as ('H' in ft, 'mu' in microPascal seconds)
+    let test_values = vec![
+        (-16_000.0,  1.9385e-5),     // very low in the range
+        (0.0,        1.7894e-5),     // sea level
+        (16_000.0,   1.6322e-5),
+        (20_000.0,   1.5915e-5),
+        (100_000.0,  1.4786e-5),
+        (262_000.0,  1.3111e-5),     // very high in the range
+    ];
+
+    for (h_ft, mu_pascal_second) in test_values {
+        let altitude = uom::si::f64::Length::new::<foot>(h_ft);
+        let dynamic_viscosity = aero_atmos::InternationalStandardAtmosphere::altitude_to_dynamic_viscosity(altitude).unwrap().get::<uom::si::dynamic_viscosity::pascal_second>();
+        assert_eq_precision!(dynamic_viscosity, mu_pascal_second, PRECISION);
+    }
+
+    // too low
+    let altitude = uom::si::f64::Length::new::<kilometer>(-6.0);
+    let dynamic_viscosity = aero_atmos::InternationalStandardAtmosphere::altitude_to_dynamic_viscosity(altitude);
+    assert_eq!(dynamic_viscosity, Err(IsaError::InputOutOfRange), "Geopotential altitude is too low out of bounds.");
+
+    // too high
+    let altitude = uom::si::f64::Length::new::<kilometer>(85.0);
+    let dynamic_viscosity = aero_atmos::InternationalStandardAtmosphere::altitude_to_dynamic_viscosity(altitude);
+    assert_eq!(dynamic_viscosity, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
+}

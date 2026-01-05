@@ -11,7 +11,7 @@ Geopotential altitude (H) __to__ ...
 - [x] Density Ratio ($ \rho/\rho_0 $)
 - [x] Square Root of Density Ratio ($ \sqrt{\rho/\rho_0} $)
 - [x] Speed of Sound ($a$)
-- [ ] Dynamic Viscosity (μ, mu)
+- [x] Dynamic Viscosity (μ, mu)
 - [ ] Kinematic Viscosity ($ν$) (ν = μ/ρ)
 - [ ] Thermal Conductivity ($λ$, lambda)
 - [ ] Number Density ($n$) (N = ρ/M)
@@ -38,12 +38,12 @@ For some smaller functions, such as square root of density ratio, only a `doctes
 
 | Symbol        | Name                               | Unit             | Value (if applicable)           | Notes or Derrivation             | IMpl'd? |
 |---------------|------------------------------------|------------------|---------------------------------|----------------------------------|---------|
-| $ a $         | Speed of sound                     | m/s              |                                 |                                  |         |
-| $ h $         | Geometric altitude                 | m                |                                 |                                  |         |
-| $ g $         | acceleration due to gravity        | m/s²             |                                 |                                  |         |
-| $ G $         | Standard gravity at sea level      | m/s²             | 9.806_65                        |                                  | [x]     |
-| $ H $         | Geopotential altitude              | m                |                                 |                                  |         |
-| $ H_b $       | Base geopotential altitude         | m                | Varies by layer, 0 @ SL         |                                  |         |
+|  _a_          | Speed of sound                     | m/s              |                                 |                                  |         |
+|  _h_          | Geometric altitude                 | m                |                                 |                                  |         |
+|  _g_          | acceleration due to gravity        | m/s²             |                                 |                                  |         |
+| _G_          | Standard gravity at sea level      | m/s²             | 9.806_65                        |                                  | [x]     |
+| _H_          | Geopotential altitude              | m                |                                 |                                  |         |
+| _H_b_ | Base geopotential altitude         | m                | Varies by layer, 0 @ SL         |                                  |         |
 | $ l $         | Mean free path                     |                  |                                 |                                  |         |
 | $ M_0 $       | Molar mass of Earth's air          | g/mol            | 28_964.420                      |                                  |         |
 | $ n $         | Number density                     |                  |                                 | $ N = \frac{\rho}{M} $           |         |

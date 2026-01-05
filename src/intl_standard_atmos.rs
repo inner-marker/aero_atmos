@@ -568,6 +568,8 @@ impl InternationalStandardAtmosphere {
 
     /// Speed of sound from geopotential altitude.
     /// 
+    /// The symbol for speed of sound is `a`.
+    /// 
     /// "This expression ... presents the speed of
     /// propagation of an infinitesimal perturbation in a gas. That
     /// is why this formula may not be used for calculation, for
@@ -605,6 +607,43 @@ impl InternationalStandardAtmosphere {
         let a = (gamma * r_specific * t).sqrt(); // m/s
 
         Ok(uom::si::f64::Velocity::new::<uom::si::velocity::meter_per_second>(a))
+    }
+
+    /// Dynamic viscosity from geopotential altitude.
+    /// 
+    /// The symbol for dynamic viscosity is `μ`.
+    /// 
+    /// Tabular values for dynamic viscosity are given in ICAO Doc 7488/3 Table 5.
+    /// The table lists `H` in feet.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::f64::DynamicViscosity;
+    /// use uom::si::length::foot;
+    /// use uom::si::dynamic_viscosity::pascal_second;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 5: 
+    /// // H = 16_000.0 ft => μ = 1.6322e-5 Pa·s
+    /// let altitude = Length::new::<foot>(16_000.0);
+    /// let dynamic_viscosity = InternationalStandardAtmosphere::altitude_to_dynamic_viscosity(altitude).unwrap();
+    /// assert_eq_precision!(dynamic_viscosity.get::<pascal_second>(), 1.6322e-5, PRECISION);
+    /// ```
+    pub fn altitude_to_dynamic_viscosity(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::DynamicViscosity, IsaError> {
+        let t: f64 = Self::altitude_to_temperature(geopotential_altitude)?.get::<uom::si::thermodynamic_temperature::kelvin>(); // K
+        let beta_s: f64 = Self::constant_sutherland_beta_s(); // kg/(m·s·K^0.5)
+        let s: f64 = Self::constant_sutherland_s().get::<uom::si::thermodynamic_temperature::kelvin>(); // K
+
+        let mu = (beta_s * t.powf(3.0/2.0)) / (t + s);
+
+        Ok(uom::si::f64::DynamicViscosity::new::<uom::si::dynamic_viscosity::pascal_second>(mu))
     }
 
     /// The earth's radius.
