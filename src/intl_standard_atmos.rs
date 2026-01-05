@@ -7,9 +7,18 @@ use uom::si::pressure::pascal;
 
 
 
-/// Struuct for the ISA
+/// Struuct for the International Standard Atmosphere
+/// 
+/// This struct contains methods to compute various atmospheric properties based on the International Standard Atmosphere (ISA) model.
+/// 
+/// The source is ICAO Doc 7488/3, "Manual of the ICAO Standard Atmosphere", Third Edition, 1993.
+/// 
+/// Computations are based on the values and equations provided in the document. Some more accurate or precise 
+/// methods and values may exist elsewhere, but this implementation aims to closely follow the ISA specification.
+/// 
+/// For all methods where physical quantities are involved, the `uom` crate is used to ensure type safety and unit correctness.
+/// Some values are unitless, so are represented as `f64`.
 pub struct InternationalStandardAtmosphere {
-
 }
 
 /// Error types for ISA calculations
@@ -644,6 +653,88 @@ impl InternationalStandardAtmosphere {
         let mu = (beta_s * t.powf(3.0/2.0)) / (t + s);
 
         Ok(uom::si::f64::DynamicViscosity::new::<uom::si::dynamic_viscosity::pascal_second>(mu))
+    }
+
+    /// Kinematic viscosity from geopotential altitude.
+    /// 
+    /// The symbol for kinematic viscosity is `ν` (nu).
+    /// 
+    /// Tabular values for kinematic viscosity are given in ICAO Doc 7488/3 Table 5.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::f64::KinematicViscosity;
+    /// use uom::si::length::foot;
+    /// use uom::si::kinematic_viscosity::square_meter_per_second;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 5: 
+    /// // H = 16_000.0 ft => ν = 2.1880e-5 m²/s
+    /// let altitude = Length::new::<foot>(16_000.0);
+    /// let kinematic_viscosity = InternationalStandardAtmosphere::altitude_to_kinematic_viscosity(altitude).unwrap();
+    /// assert_eq_precision!(kinematic_viscosity.get::<square_meter_per_second>(), 2.1880e-5, PRECISION);
+    /// ```
+    pub fn altitude_to_kinematic_viscosity(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::KinematicViscosity, IsaError> {
+        let mu = Self::altitude_to_dynamic_viscosity(geopotential_altitude)?.get::<uom::si::dynamic_viscosity::pascal_second>(); // Pa·s
+        let rho = Self::altitude_to_density(geopotential_altitude)?.get::<uom::si::mass_density::kilogram_per_cubic_meter>(); // kg/m^3
+
+        // handle divide by zero
+        if rho == 0.0 {return Err(IsaError::ComputationError);}
+
+        let nu = mu / rho; // m^2/s
+
+        Ok(uom::si::f64::KinematicViscosity::new::<uom::si::kinematic_viscosity::square_meter_per_second>(nu))
+    }
+
+    /// Thermal conductivity from geopotential altitude.
+    /// 
+    /// The symbol for thermal conductivity is `λ` (lambda).
+    /// 
+    /// Tabular values for thermal conductivity are given in ICAO Doc 7488/3 Table 5.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::f64::ThermalConductivity;
+    /// use uom::si::length::foot;
+    /// use uom::si::thermal_conductivity::watt_per_meter_kelvin;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 5: 
+    /// // H = 16_000.0 ft => λ = 2.2810e-2 W/(m·K)
+    /// let altitude = Length::new::<foot>(16_000.0);
+    /// let thermal_conductivity = InternationalStandardAtmosphere::altitude_to_thermal_conductivity(altitude).unwrap();
+    /// assert_eq_precision!(thermal_conductivity.get::<watt_per_meter_kelvin>(), 2.2810e-2, PRECISION);
+    /// ```
+    pub fn altitude_to_thermal_conductivity(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::ThermalConductivity, IsaError> {
+        let t: f64 = Self::altitude_to_temperature(geopotential_altitude)?.get::<uom::si::thermodynamic_temperature::kelvin>(); // K
+        let c1: f64 = 2.648_151e-3;
+        let c2: f64 = 245.4;
+        let c4: f64 = -(12.0/t);
+        let c3: f64 = 10.0_f64.powf(c4);
+
+
+        let dividend = c1 * t.powf(3.0/2.0);
+        let divisor = t + (c2 * c3);
+
+        if divisor == 0.0 {return Err(IsaError::ComputationError);}
+
+        let lambda = dividend / divisor; // W/(m·K)
+
+        Ok(uom::si::f64::ThermalConductivity::new::<uom::si::thermal_conductivity::watt_per_meter_kelvin>(lambda))
     }
 
     /// The earth's radius.

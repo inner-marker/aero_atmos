@@ -279,3 +279,33 @@ fn standard_dynamic_viscosity_tests () {
     let dynamic_viscosity = aero_atmos::InternationalStandardAtmosphere::altitude_to_dynamic_viscosity(altitude);
     assert_eq!(dynamic_viscosity, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
 }
+
+/// Thermal conductivity tests
+#[test]
+fn standard_thermal_conductivity_tests () {
+    // Test values from Doc7488, Table 5, given as ('H' in ft, 'lambda' in W/(m·K))
+    let test_values = vec![
+        (-16_000.0,  2.7798e-2),     // very low in the range
+        (0.0,        2.5343e-2),     // sea level
+        (16_000.0,   2.2810e-2),     // mid range
+        (20_000.0,   2.2164e-2),     // mid range
+        (100_000.0,  2.0397e-2),     // mid range
+        (262_000.0,  1.7841e-2),     // very high in the range
+    ];
+
+    for (h_ft, lambda_w_m_k) in test_values {
+        let altitude = uom::si::f64::Length::new::<foot>(h_ft);
+        let thermal_conductivity = aero_atmos::InternationalStandardAtmosphere::altitude_to_thermal_conductivity(altitude).unwrap().get::<uom::si::thermal_conductivity::watt_per_meter_kelvin>();
+        assert_eq_precision!(thermal_conductivity, lambda_w_m_k, PRECISION);
+    }
+
+    // too low
+    let altitude = uom::si::f64::Length::new::<kilometer>(-6.0);
+    let thermal_conductivity = aero_atmos::InternationalStandardAtmosphere::altitude_to_thermal_conductivity(altitude);
+    assert_eq!(thermal_conductivity, Err(IsaError::InputOutOfRange), "Geopotential altitude is too low out of bounds.");
+
+    // too high
+    let altitude = uom::si::f64::Length::new::<kilometer>(85.0);
+    let thermal_conductivity = aero_atmos::InternationalStandardAtmosphere::altitude_to_thermal_conductivity(altitude);
+    assert_eq!(thermal_conductivity, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
+}

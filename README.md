@@ -2,12 +2,14 @@
 
 This library provides interaction with multiple subjects relating to aerodynamics and atmospherics.
 
-## atmospherics
+## Atmospherics
 
 The primary atmospheric model here is the standard atmosphere. Two standard atmospheres are provided:
 
-- 1976 US Standard Atmosphere
 - 1993 International Standard Atmosphere (ISA) (ICAO Doc 7488/3)
+   - Work in progress
+- 1976 US Standard Atmosphere
+    - Not yet started
 
 ## Implimentations
 
