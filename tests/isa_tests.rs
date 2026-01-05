@@ -286,3 +286,164 @@ fn standard_number_density_tests () {
     let number_density = aero_atmos::InternationalStandardAtmosphere::altitude_to_number_density(altitude);
     assert_eq!(number_density, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
 }
+
+/// Mean particle speed tests
+#[test]
+fn standard_mean_particle_speed_tests () {
+    // Test values from Doc7488, ('H' in meters, 'v_bar' in m/s)
+    // Table 3 from Doc7488
+    let test_values = vec![
+        (-4.95,  483.89),     // very low in the range
+        (0.0  ,  458.94),     // sea level
+        (3.0  ,  443.14),     // mid range
+        (15.0 ,  397.95),     // mid range
+        (29.0 ,  406.13),     // mid range
+        (40.0 ,  428.38),     // mid range
+        (79.8 ,  379.52),     // very high in the range
+    ];
+
+    for (h_km, v_bar_m_per_s) in test_values {
+        let altitude = uom::si::f64::Length::new::<kilometer>(h_km);
+        let mean_particle_speed = aero_atmos::InternationalStandardAtmosphere::altitude_to_mean_particle_speed(altitude).unwrap().value;
+        assert_eq_precision!(mean_particle_speed, v_bar_m_per_s, PRECISION);
+    }
+
+    // too low
+    let altitude = uom::si::f64::Length::new::<kilometer>(-6.0);
+    let mean_particle_speed = aero_atmos::InternationalStandardAtmosphere::altitude_to_mean_particle_speed(altitude);
+    assert_eq!(mean_particle_speed, Err(IsaError::InputOutOfRange), "Geopotential altitude is too low out of bounds.");
+
+    // too high
+    let altitude = uom::si::f64::Length::new::<kilometer>(85.0);
+    let mean_particle_speed = aero_atmos::InternationalStandardAtmosphere::altitude_to_mean_particle_speed(altitude);
+    assert_eq!(mean_particle_speed, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
+}
+
+/// Mean free path tests
+#[test]
+fn standard_mean_free_path_tests () {
+    // Test values from Doc7488, ('H' in meters, 'l' in meters)
+    // Table 3 from Doc7488
+    let test_values = vec![
+        (-4.95,  4.2271e-8),     // very low in the range
+        (0.0  ,  6.6328e-8),     // sea level
+        (3.0  ,  8.9374e-8),     // mid range
+        (15.0 ,  4.1953e-7),     // mid range
+        (29.0 ,  3.8614e-6),     // mid range
+        (40.0 ,  2.1099e-5),     // mid range
+        (79.8 ,  5.0088e-3),     // very high in the range
+    ];
+
+    for (h_km, l_m) in test_values {
+        let altitude = uom::si::f64::Length::new::<kilometer>(h_km);
+        let mean_free_path = aero_atmos::InternationalStandardAtmosphere::altitude_to_mean_free_path(altitude).unwrap().get::<uom::si::length::meter>();
+        assert_eq_precision!(mean_free_path, l_m, PRECISION);
+    }
+
+    // too low
+    let altitude = uom::si::f64::Length::new::<kilometer>(-6.0);
+    let mean_free_path = aero_atmos::InternationalStandardAtmosphere::altitude_to_mean_free_path(altitude);
+    assert_eq!(mean_free_path, Err(IsaError::InputOutOfRange), "Geopotential altitude is too low out of bounds.");
+    // too high
+    let altitude = uom::si::f64::Length::new::<kilometer>(85.0);
+    let mean_free_path = aero_atmos::InternationalStandardAtmosphere::altitude_to_mean_free_path(altitude);
+    assert_eq!(mean_free_path, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
+}
+
+/// Collision frequency tests
+#[test]
+fn standard_collision_frequency_tests () {
+    // Test values from Doc7488, ('H' in meters, 'omega' in Hz)
+    // Table 3 from Doc7488
+    let test_values = vec![
+        (-4.95,  1.1447e10),     // very low in the range
+        (0.0  ,  6.9193e9),     // sea level
+        (3.0  ,  4.9583e9),     // mid range
+        (15.0 ,  9.4857e8),     // mid range
+        (29.0 ,  1.0518e8),     // mid range
+        (40.0 ,  2.0303e7),     // mid range
+        (79.8 ,  7.5772e4),     // very high in the range
+    ];
+    
+    for (h_km, omega_hz) in test_values {
+        let altitude = uom::si::f64::Length::new::<kilometer>(h_km);
+        let collision_frequency = aero_atmos::InternationalStandardAtmosphere::altitude_to_collision_frequency(altitude).unwrap().value;
+        assert_eq_precision!(collision_frequency, omega_hz, PRECISION);
+    }
+
+    // too low
+    let altitude = uom::si::f64::Length::new::<kilometer>(-6.0);
+    let collision_frequency = aero_atmos::InternationalStandardAtmosphere::altitude_to_collision_frequency(altitude);
+    assert_eq!(collision_frequency, Err(IsaError::InputOutOfRange), "Geopotential altitude is too low out of bounds.");
+
+    // too high
+    let altitude = uom::si::f64::Length::new::<kilometer>(85.0);
+    let collision_frequency = aero_atmos::InternationalStandardAtmosphere::altitude_to_collision_frequency(altitude);
+    assert_eq!(collision_frequency, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
+}
+
+/// Test for gravity at altitude
+/// Tabular values for gravitational acceleration are given in ICAO Doc 7488/3 Table 4.
+/// Geopotential altitude in Table 4 is given in feet.
+#[test]
+fn standard_gravity_tests () {
+    // test data (geopotential altitude in feet, gravity in m/s^2)
+    let test_data = [
+        (-16_250.0, 9.8219),    // very low in the range
+        (      0.0, 9.8067),   // sea level
+        ( 16_000.0, 9.7916),    // mid range
+        ( 50_000.0, 9.7597),    // mid range
+        (100_000.0, 9.7128),    // mid range
+        (262_000.0, 9.5618),    // very high in the range
+    ];
+
+    for (h_ft, g_expected) in test_data {
+        let altitude = uom::si::f64::Length::new::<foot>(h_ft);
+        let gravity = aero_atmos::InternationalStandardAtmosphere::altitude_to_gravitational_acceleration(altitude).unwrap().get::<uom::si::acceleration::meter_per_second_squared>();
+        assert_eq_precision!(gravity, g_expected, PRECISION);
+    }
+
+    // too low
+    let altitude = uom::si::f64::Length::new::<kilometer>(-6.0);
+    let gravity = aero_atmos::InternationalStandardAtmosphere::altitude_to_gravitational_acceleration(altitude);
+    assert_eq!(gravity, Err(IsaError::InputOutOfRange), "Geopotential altitude is too low out of bounds.");
+
+    // too high
+    let altitude = uom::si::f64::Length::new::<kilometer>(85.0);
+    let gravity = aero_atmos::InternationalStandardAtmosphere::altitude_to_gravitational_acceleration(altitude);
+    assert_eq!(gravity, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
+}
+
+/// Specific weight tests
+/// Tabular values for specific weight are given in ICAO Doc 7488/3 Table 3.
+/// Values for geopotential altitude are given in meters.
+#[test]
+fn standard_specific_weight_tests () {
+    // test data base on Table 4: 
+    // vec of (geopotential altitude in kilometers, specific weight in N/m^3)
+    let test_data = [
+        (-4.95,  1.8879e1),     // very low in the range
+        (0.0  ,  1.2013e1),     // sea level
+        (3.0  ,  8.9070e0),     // mid range
+        (15.0 ,  1.8903e0),     // mid range
+        (29.0 ,  2.0447e-1),     // mid range
+        (40.0 ,  3.7291e-2),     // mid range
+        (79.8 ,  1.5511e-4),     // very high in the range
+    ];
+
+    for (h_km, specific_weight_expected) in test_data {
+        let altitude = uom::si::f64::Length::new::<kilometer>(h_km);
+        let specific_weight = aero_atmos::InternationalStandardAtmosphere::altitude_to_specific_weight(altitude).unwrap();
+        assert_eq_precision!(specific_weight, specific_weight_expected, PRECISION);
+    }
+
+    // too low
+    let altitude = uom::si::f64::Length::new::<kilometer>(-6.0);
+    let specific_weight = aero_atmos::InternationalStandardAtmosphere::altitude_to_specific_weight(altitude);
+    assert_eq!(specific_weight, Err(IsaError::InputOutOfRange), "Geopotential altitude is too low out of bounds.");
+
+    // too high
+    let altitude = uom::si::f64::Length::new::<kilometer>(85.0);
+    let specific_weight = aero_atmos::InternationalStandardAtmosphere::altitude_to_specific_weight(altitude);
+    assert_eq!(specific_weight, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
+}

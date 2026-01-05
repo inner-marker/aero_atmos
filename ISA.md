@@ -14,12 +14,12 @@ Geopotential altitude (H) __to__ ...
 - [x] Dynamic Viscosity (μ, mu)
 - [x] Kinematic Viscosity ($ν$) (ν = μ/ρ)
 - [x] Thermal Conductivity ($λ$, lambda)
-- [ ] Number Density ($n$) (N = ρ/M)
-- [ ] Mean particle speed ($\bar{v}$)
-- [ ] Collision Frequency ($\omega$)
-- [ ] Mean free path ($ l $)
-- [ ] Gravity acceleration, local ($g$)
-- [ ] Specific Weight ($γ$, gamma) ($\gamma = \rho g$)
+- [x] Number Density ($n$) (N = ρ/M)
+- [x] Mean particle speed ($\bar{v}$)
+- [x] Mean free path ($ l $)
+- [x] Collision Frequency ($\omega$)
+- [x] Gravity acceleration, local ($g$)
+- [x] Specific Weight ($γ$, gamma) ($\gamma = \rho g$)
 
 Generally, __to__ functions will return a `Result<uom::si::f64::XXX>`, where `XXX` is the appropriate quantity.
 

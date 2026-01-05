@@ -2,10 +2,19 @@
 //! 
 //! This module provides functions and data structures to model the 1993 International Standard Atmosphere (ISA) as defined by ICAO Doc 7488/3.
 
+
 use uom::si::length::*;
 use uom::si::pressure::pascal;
 
+/// Error types for ISA calculations
+#[derive(Debug, PartialEq)]
+pub enum IsaError {
+    /// Input value is out of the valid range
+    InputOutOfRange,
 
+    /// A computation error occurred (e.g., division by zero)
+    ComputationError,
+}
 
 /// Struuct for the International Standard Atmosphere
 /// 
@@ -21,14 +30,6 @@ use uom::si::pressure::pascal;
 pub struct InternationalStandardAtmosphere {
 }
 
-/// Error types for ISA calculations
-#[derive(Debug, PartialEq)]
-pub enum IsaError {
-    /// Input value is out of the valid range
-    InputOutOfRange,
-    ComputationError,
-}
-
 impl InternationalStandardAtmosphere {
 
     /// The standard temperature for a geopotential altitude
@@ -37,6 +38,12 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Arguments
     /// * `geopotential_altitude` - Geopotential altitude using uom length.
+    /// 
+    /// # Returns
+    /// Temperature in uom thermodynamic temperature.
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range (-5 to 80 km).
     /// 
     /// # Example
     /// ```rust
@@ -205,6 +212,12 @@ impl InternationalStandardAtmosphere {
     /// # Arguments
     /// * `geopotential_altitude` - Geopotential altitude using uom length.
     /// 
+    /// # Returns
+    /// Base geopotential altitude for the layer in uom length.
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range (-5 to 80 km).
+    /// 
     /// # Example
     /// ```rust
     /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
@@ -260,10 +273,17 @@ impl InternationalStandardAtmosphere {
 
     /// Temperature lapse rate for a geopotential altitude layer.
     /// 
-    /// Note, this function returns the lapse rate in K/km.
+    /// Note, this function returns the lapse rate in K/km. Also, if the input geopotential
+    /// altitude is exactly equal to the base altitude of a layer, the lapse rate for the next lower layer is returned.
     /// 
     /// # Arguments
     /// * `geopotential_altitude` - Geopotential altitude using uom length.
+    /// 
+    /// # Returns
+    /// Lapse rate in K/km as f64.
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range (-5 to 80 km).
     /// 
     /// # Example
     /// ```rust
@@ -279,9 +299,7 @@ impl InternationalStandardAtmosphere {
         let h = geopotential_altitude.get::<uom::si::length::kilometer>();
 
         // check if `h` is out of range
-        if h < -5.0 || 80.0 < h {
-            return Err(IsaError::InputOutOfRange);
-        }
+        if h < -5.0 || 80.0 < h { return Err(IsaError::InputOutOfRange); }
 
         // match altitude ranges to determine lapse rate
         match geopotential_altitude.get::<uom::si::length::kilometer>() {
@@ -331,6 +349,10 @@ impl InternationalStandardAtmosphere {
     /// # Returns
     /// geometric altitude (h) in uom length
     /// 
+    /// # Errors
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range (-5 to 80 km).
+    /// 
     /// # Example
     /// ```rust
     /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
@@ -345,12 +367,18 @@ impl InternationalStandardAtmosphere {
     /// assert_eq_precision!(geometric_alt.get::<meter>(), 10015.71, PRECISION);
     /// ```
     pub fn altitude_geopotential_to_geometric(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::Length, IsaError> {
+        let geopotential_alt_meter = geopotential_altitude.get::<meter>();
+
+        // check for valid range
+        if geopotential_alt_meter < -5.0 || geopotential_alt_meter > 80_000.0 { return Err(IsaError::InputOutOfRange); }
+
         let rad_meter = Self::constant_earth_radius().get::<meter>();
-        let geop_alt_meter = geopotential_altitude.get::<meter>();
-        let radius_minus_altitude = rad_meter - geop_alt_meter;
+        let radius_minus_altitude = rad_meter - geopotential_alt_meter;
+
         // handle divide by zero
         if radius_minus_altitude == 0.0 {return Err(IsaError::ComputationError)}
-        Ok(uom::si::f64::Length::new::<meter>((rad_meter * geop_alt_meter) / radius_minus_altitude))
+
+        Ok(uom::si::f64::Length::new::<meter>((rad_meter * geopotential_alt_meter) / radius_minus_altitude))
     }
 
     /// Convert geometric (h) to geopotential (H) altitude
@@ -364,6 +392,10 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Returns
     /// Geopotential altitude (H) in uom length
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
+    /// - Returns `IsaError::InputOutOfRange` if the geometric altitude is negative.
     /// 
     /// # Example
     /// ```rust
@@ -379,20 +411,34 @@ impl InternationalStandardAtmosphere {
     /// assert_eq_precision!(geopotential_alt.get::<meter>(), 9984.29, PRECISION);
     /// ```
     pub fn altitude_geometric_to_geopotential(geometric_altitude: uom::si::f64::Length) -> Result<uom::si::f64::Length, IsaError> {
+        let geometric_alt_meter = geometric_altitude.get::<meter>();
+        
+        // check for valid range 
+        if geometric_alt_meter < -5.0 || geometric_alt_meter > 80_000.0 { return Err(IsaError::InputOutOfRange); }
+        
         let rad_meter = Self::constant_earth_radius().get::<meter>();
-        let geo_alt_meter = geometric_altitude.get::<meter>();
-        let radius_plus_altitude = rad_meter + geo_alt_meter;
+        let radius_plus_altitude = rad_meter + geometric_alt_meter;
+
         // handle divide by zero. Probably impossible, but just in case.
         if radius_plus_altitude == 0.0 {return Err(IsaError::ComputationError)}
-        Ok(uom::si::f64::Length::new::<meter>((rad_meter * geo_alt_meter) / radius_plus_altitude))
+        
+        Ok(uom::si::f64::Length::new::<meter>((rad_meter * geometric_alt_meter) / radius_plus_altitude))
     }
     
     /// Pressure from geopotential altitude.
     /// 
-    /// The valid range for geopotential altitude is -5 km to 80 km.
+    /// Tabular values for pressure are given in ICAO Doc 7488/3 Table 4.
+    /// In Table 4, values for `H` are listed in feet, and pressure in pascals.
     /// 
-    /// This function uses an iterative method to compute pressure if the Geopotential altitude is outside of the 
-    /// range -5 to 11 km.
+    /// This function uses a recursive method to compute pressure if the Geopotential altitude is outside of the 
+    /// lowest layer range of -5 to 11 km.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range (-5 to 80 km).
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
     /// 
     /// # Example
     /// ```rust
@@ -415,7 +461,7 @@ impl InternationalStandardAtmosphere {
         let h: f64 = geopotential_altitude.get::<uom::si::length::kilometer>(); // km
         let h_base: f64 = Self::altitude_to_base_geopotential_altitude(geopotential_altitude)?.get::<uom::si::length::kilometer>(); // km
         let m: f64 = Self::constant_molar_mass_air().get::<uom::si::molar_mass::gram_per_mole>(); // g/mol
-        let g: f64 = Self::constant_gravity_sl().get::<uom::si::acceleration::meter_per_second_squared>(); // m/s^2
+        let g: f64 = Self::constant_gravity_sealevel().get::<uom::si::acceleration::meter_per_second_squared>(); // m/s^2
         let r_star: f64 = Self::constant_universal_gas_constant(); // J/(kmol·K)
         let beta: f64 = Self::altitude_to_lapse_rate(geopotential_altitude)?; // K/km
         
@@ -454,7 +500,15 @@ impl InternationalStandardAtmosphere {
     /// 
     /// Returns the pressure ratio (p/P₀) for a given geopotential altitude.
     /// 
-    /// The valid range for geopotential altitude is -5 km to 80 km.
+    /// Tabular values for p/P₀ are given in ICAO Doc 7488/3 Table 2.
+    /// In Table 2, values for `H` are listed in meters.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range (-5 to 80 km).
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
     /// 
     /// # Example
     /// ```rust
@@ -487,6 +541,16 @@ impl InternationalStandardAtmosphere {
     /// Density from geopotential altitude.
     /// 
     /// The valid range for geopotential altitude is -5 km to 80 km.
+    /// 
+    /// Tabular values for density are given in ICAO Doc 7488/3 Table 4.
+    /// In Table 4, values for `H` are listed in feet.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range.
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
     /// 
     /// # Example
     /// ```rust
@@ -522,6 +586,13 @@ impl InternationalStandardAtmosphere {
     /// 
     /// Returns the density ratio (ρ/ρ₀) for a given geopotential altitude.
     /// 
+    /// Tabular values for ρ/ρ₀ are given in ICAO Doc 7488/3 Table 5.
+    /// Values for `H` are listed in feet.
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range.
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero). 
+    /// 
     /// # Arguments
     /// * `geopotential_altitude` - Geopotential altitude using uom length.
     /// 
@@ -552,6 +623,13 @@ impl InternationalStandardAtmosphere {
     /// Square root of density ratio
     /// 
     /// Returns the square root of the density ratio (√(ρ/ρ₀)) for a given geopotential altitude.
+    /// 
+    /// Tabular values for √(ρ/ρ₀) are given in ICAO Doc 7488/3 Table 2.
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range.
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
+    /// 
     /// 
     /// # Arguments
     /// * `geopotential_altitude` - Geopotential altitude using uom length.
@@ -774,9 +852,227 @@ impl InternationalStandardAtmosphere {
         Ok(n)
     }
 
+    /// Mean particle speed
+    /// 
+    /// Returns the mean particle speed ($\bar{v}$) for a given geopotential altitude.
+    /// 
+    /// Tabular values for mean particle speed are given in ICAO Doc 7488/3 Table 3.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Errors
+    /// Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range of -5 km to 80 km.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::f64::Velocity;
+    /// use uom::si::length::meter;
+    /// use uom::si::velocity::meter_per_second;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 3: 
+    /// // H = 3_000.0 m => v̄ = 443.14 m/s
+    /// let altitude = Length::new::<meter>(3_000.0);
+    /// let mean_particle_speed = InternationalStandardAtmosphere::altitude_to_mean_particle_speed(altitude).unwrap();
+    /// assert_eq_precision!(mean_particle_speed.get::<meter_per_second>(), 443.14, PRECISION);
+    /// ```
+    pub fn altitude_to_mean_particle_speed(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::Velocity, IsaError> {
+        let t: f64 = Self::altitude_to_temperature(geopotential_altitude)?.get::<uom::si::thermodynamic_temperature::kelvin>(); // K
+        let r: f64 = Self::constant_specific_gas_constant_air(); // J/(kmol·K)
+
+        let constant = 1.595_769;
+
+        let v_bar = constant * (r * t).sqrt(); // m/s
+
+        Ok(uom::si::f64::Velocity::new::<uom::si::velocity::meter_per_second>(v_bar))
+    }
+
+    /// Mean Free Path
+    /// 
+    /// Returns the mean free path (_`l`_) for a given geopotential altitude.
+    /// 
+    /// Tabular values for mean free path are given in ICAO Doc 7488/3 Table 3.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Returns
+    /// Mean free path in uom length
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range of -5 km to 80 km.
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::length::meter;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 3: 
+    /// // H = 3_000.0 m => l = 8.9374e-8 m
+    /// let altitude = Length::new::<meter>(3_000.0);
+    /// let mean_free_path = InternationalStandardAtmosphere::altitude_to_mean_free_path(altitude).unwrap();
+    /// assert_eq_precision!(mean_free_path.get::<meter>(), 8.9374e-8, PRECISION);
+    /// ```
+    pub fn altitude_to_mean_free_path(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::Length, IsaError> {
+        let pi = std::f64::consts::PI;
+        let sigma = Self::constant_effective_collision_diameter_air_molecule().get::<uom::si::length::meter>(); // m
+        let n = Self::altitude_to_number_density(geopotential_altitude)?; // m^-3
+
+        let divisor = (2.0_f64).sqrt() * pi * sigma.powf(2.0_f64) * n;
+        // handle divide by zero
+        if divisor == 0.0 { return Err(IsaError::ComputationError)}
+
+        Ok(uom::si::f64::Length::new::<uom::si::length::meter>(1.0_f64 / divisor))
+    }
+
+    /// Collision Frequency
+    /// 
+    /// Returns the collision frequency (_`ω`_) for a given geopotential altitude.
+    /// 
+    /// Tabular values for collision frequency are given in ICAO Doc 7488/3 Table 3.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range of -5 km to 80 km.
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::f64::Frequency;
+    /// use uom::si::length::meter;
+    /// use uom::si::frequency::hertz;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 3: 
+    /// // H = 3_000.0 m => ω = 4.9583e9 s⁻¹
+    /// let altitude = Length::new::<meter>(3_000.0);
+    /// let collision_frequency = InternationalStandardAtmosphere::altitude_to_collision_frequency(altitude).unwrap();
+    /// assert_eq_precision!(collision_frequency.get::<hertz>(), 4.9583e9, PRECISION);
+    /// ```
+    pub fn altitude_to_collision_frequency(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::Frequency, IsaError> {
+        let v_bar = Self::altitude_to_mean_particle_speed(geopotential_altitude)?.get::<uom::si::velocity::meter_per_second>(); // m/s
+        let l = Self::altitude_to_mean_free_path(geopotential_altitude)?.get::<uom::si::length::meter>(); // m
+
+        // handle divide by zero
+        if l == 0.0 {return Err(IsaError::ComputationError);}
+
+        let omega = v_bar / l; // s^-1
+
+        Ok(uom::si::f64::Frequency::new::<uom::si::frequency::hertz>(omega))
+    }
+
+    /// Gravitational Acceleration from geopotential altitude.
+    /// 
+    /// The symbol for gravitational acceleration is _`g`_.
+    /// 
+    /// Tabular values for gravitational acceleration are given in ICAO Doc 7488/3 Table 4.
+    /// Geopotential altitude in Table 4 is given in feet.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range of -5 km to 80 km.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::f64::Acceleration;
+    /// use uom::si::length::foot;
+    /// use uom::si::acceleration::meter_per_second_squared;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 4: 
+    /// // H = 16_000.0 ft => g = 9.7916 m/s²
+    /// let altitude = Length::new::<foot>(16_000.0);
+    /// let gravitational_acceleration = InternationalStandardAtmosphere::altitude_to_gravitational_acceleration(altitude).unwrap();
+    /// assert_eq_precision!(gravitational_acceleration.get::<meter_per_second_squared>(), 9.7916, PRECISION);
+    /// ```
+    pub fn altitude_to_gravitational_acceleration(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::Acceleration, IsaError> {
+        let h = geopotential_altitude.get::<uom::si::length::meter>(); // m
+        
+        // Is `H` out of range?
+        if h < -5_000.0 || h > 80_000.0 { return Err(IsaError::InputOutOfRange); }
+
+        let g0 = Self::constant_gravity_sealevel().get::<uom::si::acceleration::meter_per_second_squared>(); // m/s^2
+        let r = Self::constant_earth_radius().get::<uom::si::length::meter>(); // m
+
+        let divisor = r + h;
+        // handle divide by zero
+        if divisor == 0.0 {return Err(IsaError::ComputationError);}
+
+        let g = g0 * (r / divisor).powf(2.0);
+
+        Ok(uom::si::f64::Acceleration::new::<uom::si::acceleration::meter_per_second_squared>(g))
+    }
+
+    /// Specific Weight from geopotential altitude.
+    /// 
+    /// The symbol for specific weight is _`γ`_ (gamma). The unit is N/m³.
+    /// 
+    /// Tabular values for specific weight are given in ICAO Doc 7488/3 Table 3.
+    /// Values for geopotential altitude are given in meters.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Returns
+    /// Specific weight in N/m³ as `f64`. NOTE: uom has no quantity for specific weight, so it is not used.
+    /// 
+    /// # Errors
+    /// - Returns `IsaError::ComputationError` if a computation error occurs (e.g., division by zero).
+    /// - Returns `IsaError::InputOutOfRange` if the geopotential altitude is outside the valid range of -5 km to 80 km.
+    ///
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::length::meter;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 3: 
+    /// // H = 3_000.0 m => γ = 8.9070 N/m³
+    /// let altitude = Length::new::<meter>(3_000.0);
+    /// let specific_weight = InternationalStandardAtmosphere::altitude_to_specific_weight(altitude).unwrap();
+    /// assert_eq_precision!(specific_weight, 8.9070, PRECISION);
+    /// ```
+    pub fn altitude_to_specific_weight(geopotential_altitude: uom::si::f64::Length) -> Result<f64, IsaError> {
+        let rho = Self::altitude_to_density(geopotential_altitude)?.get::<uom::si::mass_density::kilogram_per_cubic_meter>(); // kg/m^3
+        let g = Self::altitude_to_gravitational_acceleration(geopotential_altitude)?.get::<uom::si::acceleration::meter_per_second_squared>(); // m/s^2
+
+        let specific_weight = rho * g; // N/m^3
+
+        Ok(specific_weight)
+    }
+
     /// The earth's radius.
     /// 
     /// This function returns the constant earth radius used in the ISA model.
+    /// 
+    /// # Returns
+    /// Earth radius as uom length.
     /// 
     /// # Example
     /// ```rust
@@ -795,13 +1091,13 @@ impl InternationalStandardAtmosphere {
     /// 
     /// Returns the standard gravity constant used in the ISA model.
     /// 
-    /// The symbol is `G`.
+    /// The symbol is `G` or _g_0_.
     /// 
     /// "standard acceleration due to gravity. It conforms 
     /// with latitude n = 45°32'33"N using
     /// Lambert’s equation of the acceleration due
     /// to gravity as a function of latitude" (ICAO Doc 7488/3, section 2.2)
-    pub fn constant_gravity_sl() -> uom::si::f64::Acceleration {
+    pub fn constant_gravity_sealevel() -> uom::si::f64::Acceleration {
         uom::si::f64::Acceleration::new::<uom::si::acceleration::meter_per_second_squared>(9.806_65)
     }
 
@@ -824,6 +1120,8 @@ impl InternationalStandardAtmosphere {
     /// Specific gas constant for air.
     /// 
     /// Returns the specific gas constant for air used in the ISA model.
+    /// 
+    /// The symbol is `R`.
     pub fn constant_specific_gas_constant_air() -> f64 {
         287.052_870 // J/(kg·K)
     }
@@ -869,8 +1167,18 @@ impl InternationalStandardAtmosphere {
     /// Returns the effective collision diameter of an air molecule used in the ISA model.
     /// 
     /// The symbol is `σ` (sigma).
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::length::meter;
+    /// 
+    /// let collision_diameter = InternationalStandardAtmosphere::constant_effective_collision_diameter_air_molecule();
+    /// assert_eq!(collision_diameter.get::<meter>(), 0.365e-9);
+    /// ```
     pub fn constant_effective_collision_diameter_air_molecule() -> uom::si::f64::Length {
-        uom::si::f64::Length::new::<uom::si::length::meter>(3.621e-10)
+        uom::si::f64::Length::new::<uom::si::length::meter>(0.365e-9)
     }
 
     /// Sea level standard pressure.

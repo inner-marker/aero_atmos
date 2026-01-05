@@ -7,6 +7,9 @@ pub use intl_standard_atmos::InternationalStandardAtmosphere;
 
 pub mod macros;
 
+// pub use crate::assert_eq_precision;
+// pub use self::assert_eq_sigfigs;
+
 /// Precision for floating point comparisons in tests. 
 /// 
 /// Represents 0.05%.
