@@ -1,4 +1,6 @@
 /// Macro that wraps around the `assert_eq!` macro to check whether two numerical values are approximately equal within a specified precision.
+/// 
+/// Anything else after the first three arguments is ignored.
 #[macro_export]
 macro_rules! assert_eq_precision {
     ($left:expr, $right:expr, $precision:expr $(,)?) => {{
@@ -19,3 +21,4 @@ macro_rules! assert_eq_precision {
         }
     }};
 }
+
