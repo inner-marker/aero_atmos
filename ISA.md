@@ -7,18 +7,19 @@ Geopotential altitude (H) __to__ ...
 - [x] Temperature ($T$)
 - [x] Pressure ($P$)
 - [x] Pressure Ratio ($p/P_0$)
-- [ ] Density ($\rho$, rho)
-- [ ] Density Ratio ($ \rho/\rho_0 $)
-- [ ] Square Root of Density Ratio ($ \sqrt{\rho/\rho_0} $)
-- [ ] Speed of Sound ($a$)
+- [x] Density ($\rho$, rho)
+- [x] Density Ratio ($ \rho/\rho_0 $)
+- [x] Square Root of Density Ratio ($ \sqrt{\rho/\rho_0} $)
+- [x] Speed of Sound ($a$)
 - [ ] Dynamic Viscosity (μ, mu)
 - [ ] Kinematic Viscosity ($ν$) (ν = μ/ρ)
 - [ ] Thermal Conductivity ($λ$, lambda)
-- [ ] Spcific Weights ($γ$, gamma) (γ = g)
 - [ ] Number Density ($n$) (N = ρ/M)
 - [ ] Mean particle speed ($\bar{v}$)
 - [ ] Collision Frequency ($\omega$)
 - [ ] Mean free path ($ l $)
+- [ ] Gravity acceleration, local ($g$)
+- [ ] Specific Weight ($γ$, gamma) ($\gamma = \rho g$)
 
 Generally, __to__ functions will return a `Result<uom::si::f64::XXX>`, where `XXX` is the appropriate quantity.
 
@@ -29,6 +30,9 @@ Geopotential altitude (H) __from__ ...
 - [ ] Density ($\rho$, rho)
 
 For the __from__ functions, a `Result<Vec<uom::si::f64::Length>>` will be returned.
+
+For most item marked complete, there are extensive tests in the `tests` module to verify the calculations to a precision of 0.0005 (0.05%).
+For some smaller functions, such as square root of density ratio, only a `doctest` may be provided.
 
 ## Symbols and Units
 

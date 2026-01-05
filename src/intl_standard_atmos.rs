@@ -2,12 +2,9 @@
 //! 
 //! This module provides functions and data structures to model the 1993 International Standard Atmosphere (ISA) as defined by ICAO Doc 7488/3.
 
-// use uom::si::f64::*;
 use uom::si::length::*;
 use uom::si::pressure::pascal;
-// use uom::si::thermodynamic_temperature::*;
-// use uom::si::acceleration::*;
-// use uom::si::molar_mass::*;
+
 
 
 /// Struuct for the ISA
@@ -37,13 +34,15 @@ impl InternationalStandardAtmosphere {
     /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::ThermodynamicTemperature;
-    /// use uom::si::length::kilometer;
+    /// use uom::si::length::foot;
     /// use uom::si::thermodynamic_temperature::kelvin;
     /// use aero_atmos::assert_eq_precision;
     /// 
-    /// let altitude = Length::new::<kilometer>(0.0);
-    /// let temperature = InternationalStandardAtmosphere::altitude_to_temperature(altitude).unwrap();
-    /// assert_eq!(temperature, ThermodynamicTemperature::new::<kelvin>(288.15));
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// let altitude = Length::new::<foot>(5_000.0);
+    /// let temperature = InternationalStandardAtmosphere::altitude_to_temperature(altitude).unwrap().value;
+    /// assert_eq_precision!(temperature, 278.244, PRECISION);
     /// ```
     pub fn altitude_to_temperature (geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::ThermodynamicTemperature, IsaError> {
         // match altitude ranges to determine temperature
@@ -60,48 +59,48 @@ impl InternationalStandardAtmosphere {
 
         // Match the height ranges to the constants used for the calculation.
         match geopotential_altitude.get::<uom::si::length::kilometer>() {
-            h if -5.0 <= h && h < 11.0 => {
+            h if -5.0 <= h && h <= 11.0 => {
                 // Troposphere
                 t0 = 288.15; // K
                 lapse_rate = -6.5; // K/km
-                delta_h = h; // km
+                delta_h = h - 0.0; // km
             },
-            h if 11.0 <= h && h < 20.0 => {
+            h if 11.0 < h && h <= 20.0 => {
                 // Lower Stratosphere
                 t0 = 216.65; // K
                 lapse_rate = 0.0; // K/km
-                delta_h = h; // km
+                delta_h = h - 11.0; // km
             },
-            h if 20.0 <= h && h < 32.0 => {
+            h if 20.0 < h && h <= 32.0 => {
                 // Middle Stratosphere
                 t0 = 216.65; // K
                 lapse_rate = 1.0; // K/km
-                delta_h = h; // km
+                delta_h = h - 20.0; // km
             },
-            h if 32.0 <= h && h < 47.0 => {
+            h if 32.0 < h && h <= 47.0 => {
                 // Upper Stratosphere
                 t0 = 228.65; // K
                 lapse_rate = 2.8; // K/km
-                delta_h = h; // km
+                delta_h = h - 32.0; // km
                 
             },
-            h if 47.0 <= h && h < 51.0 => {
+            h if 47.0 < h && h <= 51.0 => {
                 // Stratopause
                 t0 = 270.65; // K
                 lapse_rate = 0.0; // K/km
-                delta_h = h; // km
+                delta_h = h - 47.0; // km
             },
-            h if 51.0 <= h && h < 71.0 => {
+            h if 51.0 < h && h <= 71.0 => {
                 // Lower Mesosphere
                 t0 = 270.65; // K
                 lapse_rate = -2.8; // K/km
-                delta_h = h; // km
+                delta_h = h - 51.0; // km
             },
-            h if 71.0 <= h && h <= 80.0 => {
+            h if 71.0 < h && h <= 80.0 => {
                 // Upper Mesosphere
                 t0 = 214.65; // K
                 lapse_rate = -2.0; // K/km
-                delta_h = h; // km
+                delta_h = h - 71.0; // km
             },
             _ => {
                 return Err(IsaError::InputOutOfRange);
@@ -111,6 +110,31 @@ impl InternationalStandardAtmosphere {
     }
 
     /// Base temperature for a geopotential altitude layer
+    /// 
+    /// THis function returns the base temperature for the layer that contains the given geopotential altitude. If
+    /// the given altitude is equal to the bottom of a layer, the base temperature for the next lower layer is returned.
+    /// 
+    /// The valid range for geopotential altitude is -5 km to 80 km.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::f64::ThermodynamicTemperature;
+    /// use uom::si::length::kilometer;
+    /// use uom::si::thermodynamic_temperature::kelvin;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// let altitude = Length::new::<kilometer>(11.0);
+    /// let base_temperature = InternationalStandardAtmosphere::altitude_to_base_temperature(altitude).unwrap().value;
+    /// // 11km is at the bottom of a layer, so the base temperature of the next lower layer is returned.
+    /// assert_eq_precision!(base_temperature, 288.15, PRECISION);
+    /// ```
     pub fn altitude_to_base_temperature(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::ThermodynamicTemperature, IsaError> {
         let h = geopotential_altitude.get::<uom::si::length::kilometer>();
 
@@ -449,6 +473,138 @@ impl InternationalStandardAtmosphere {
         if p0 == 0.0 {return Err(IsaError::ComputationError);}
         
         Ok(p / p0)
+    }
+
+    /// Density from geopotential altitude.
+    /// 
+    /// The valid range for geopotential altitude is -5 km to 80 km.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::f64::MassDensity;
+    /// use uom::si::length::foot;
+    /// use uom::si::mass_density::kilogram_per_cubic_meter;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // H = 14,000 ft => 7.96523e-1 kg/m³ (Doc 7488/3 Table 4)
+    /// let altitude = uom::si::f64::Length::new::<foot>(14_000.0);
+    /// let density = InternationalStandardAtmosphere::altitude_to_density(altitude).unwrap();
+    /// assert_eq_precision!(density.get::<kilogram_per_cubic_meter>(), 7.96523e-1, PRECISION);
+    /// ```
+    pub fn altitude_to_density (geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::MassDensity, IsaError> {
+        let p = Self::altitude_to_pressure(geopotential_altitude)?.get::<pascal>(); // Pa
+        let t = Self::altitude_to_temperature(geopotential_altitude)?.get::<uom::si::thermodynamic_temperature::kelvin>(); // K
+        let r_specific = Self::constant_specific_gas_constant_air(); // J/(kg·K)
+
+        // handle divide by zero
+        let divisor = r_specific * t;
+        if divisor == 0.0 {return Err(IsaError::ComputationError);}
+
+        let rho = p / divisor; // kg/m^3
+
+        Ok(uom::si::f64::MassDensity::new::<uom::si::mass_density::kilogram_per_cubic_meter>(rho))
+    }
+
+    /// Altitude to Density ratio
+    /// 
+    /// Returns the density ratio (ρ/ρ₀) for a given geopotential altitude.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+    /// use uom::si::f64::Length;
+    /// use uom::si::length::meter;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 2: H = 5,000 meter => ρ/ρ₀ = 6.00911e-1
+    /// let altitude = Length::new::<meter>(5_000.0);
+    /// let density_ratio = InternationalStandardAtmosphere::altitude_to_density_ratio(altitude).unwrap();
+    /// assert_eq_precision!(density_ratio, 6.00911e-1, PRECISION);
+    /// ```
+    pub fn altitude_to_density_ratio(geopotential_altitude: uom::si::f64::Length) -> Result<f64, IsaError> {
+        let rho = Self::altitude_to_density(geopotential_altitude)?.get::<uom::si::mass_density::kilogram_per_cubic_meter>();
+        let rho_0 = Self::altitude_to_density(uom::si::f64::Length::new::<uom::si::length::meter>(0.0))?.get::<uom::si::mass_density::kilogram_per_cubic_meter>(); // kg/m^3 at sea level
+
+        // unlikely to be divide by zero, but just in case
+        if rho_0 == 0.0 {return Err(IsaError::ComputationError);}
+
+        Ok(rho / rho_0)
+    }
+
+    /// Square root of density ratio
+    /// 
+    /// Returns the square root of the density ratio (√(ρ/ρ₀)) for a given geopotential altitude.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+    /// use uom::si::f64::Length;
+    /// use uom::si::length::meter;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 2: H = 5,000 meter => √(ρ/ρ₀) = 7.75184e-1
+    /// let altitude = Length::new::<meter>(5_000.0);
+    /// let sqrt_density_ratio = InternationalStandardAtmosphere::altitude_to_sqrt_density_ratio(altitude).unwrap();
+    /// assert_eq_precision!(sqrt_density_ratio, 7.75184e-1, PRECISION);
+    /// ```
+    pub fn altitude_to_sqrt_density_ratio(geopotential_altitude: uom::si::f64::Length) -> Result<f64, IsaError> {
+        let density_ratio = Self::altitude_to_density_ratio(geopotential_altitude)?;
+        Ok(density_ratio.sqrt())
+    }
+
+    /// Speed of sound from geopotential altitude.
+    /// 
+    /// "This expression ... presents the speed of
+    /// propagation of an infinitesimal perturbation in a gas. That
+    /// is why this formula may not be used for calculation, for
+    /// example, of the speed of propagation of shock waves
+    /// induced by blast, detonation, body motion in the air at
+    /// supersonic speed, etc." (ICAO Doc 7488/3, section 2.14)
+    /// 
+    /// Tabular values for speed of sound are given in ICAO Doc 7488/3 Table 5.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use uom::si::f64::Velocity;
+    /// use uom::si::length::foot;
+    /// use uom::si::velocity::meter_per_second;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 5: 
+    /// // H = 16_000.0 ft => a = 321.031 m/s
+    /// let altitude = Length::new::<foot>(16_000.0);
+    /// let speed_of_sound = InternationalStandardAtmosphere::altitude_to_speed_of_sound(altitude).unwrap();
+    /// assert_eq_precision!(speed_of_sound.get::<meter_per_second>(), 321.031, PRECISION);
+    /// ```
+    pub fn altitude_to_speed_of_sound(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::Velocity, IsaError> {
+        let gamma: f64 = Self::constant_ratio_specific_heats_air(); // dimensionless
+        let r_specific: f64 = Self::constant_specific_gas_constant_air(); // J/(kg·K)
+        let t: f64 = Self::altitude_to_temperature(geopotential_altitude)?.get::<uom::si::thermodynamic_temperature::kelvin>(); // K
+
+        let a = (gamma * r_specific * t).sqrt(); // m/s
+
+        Ok(uom::si::f64::Velocity::new::<uom::si::velocity::meter_per_second>(a))
     }
 
     /// The earth's radius.
