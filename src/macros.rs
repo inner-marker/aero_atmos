@@ -1,6 +1,20 @@
-/// Macro that wraps around the `assert_eq!` macro to check whether two numerical values are approximately equal within a specified precision.
+/// Macro that checks whether two numerical values are approximately equal within a specified precision.
 /// 
-/// Anything else after the first three arguments is ignored.
+/// The specified precision is a ratio representing the maximum allowable relative difference between the two values.
+/// 
+/// Anything else after the first three arguments is not allowed.
+/// 
+/// # Examples
+/// ```
+/// use aero_atmos::assert_eq_precision;
+/// let a = 100.0;
+/// let b = 100.04;
+/// let precision = 0.0005; // 0.05%
+/// // assert_eq_precision!(a, b, precision); // This will pass
+/// 
+/// let c = 100.1;
+/// // assert_eq_precision!(a, c, precision); // This will panic
+/// ```
 #[macro_export]
 macro_rules! assert_eq_precision {
     ($left:expr, $right:expr, $precision:expr $(,)?) => {{
@@ -21,4 +35,3 @@ macro_rules! assert_eq_precision {
         }
     }};
 }
-

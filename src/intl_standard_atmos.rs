@@ -721,20 +721,57 @@ impl InternationalStandardAtmosphere {
     /// ```
     pub fn altitude_to_thermal_conductivity(geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::ThermalConductivity, IsaError> {
         let t: f64 = Self::altitude_to_temperature(geopotential_altitude)?.get::<uom::si::thermodynamic_temperature::kelvin>(); // K
-        let c1: f64 = 2.648_151e-3;
-        let c2: f64 = 245.4;
-        let c4: f64 = -(12.0/t);
-        let c3: f64 = 10.0_f64.powf(c4);
 
+        let dividend = 2.648_151e-3 * t.powf(3.0/2.0);
+        let divisor = t + (245.4 * 10.0_f64.powf(-(12.0/t)));
 
-        let dividend = c1 * t.powf(3.0/2.0);
-        let divisor = t + (c2 * c3);
-
+        // handle divide by zero, unlikely but just in case
         if divisor == 0.0 {return Err(IsaError::ComputationError);}
 
         let lambda = dividend / divisor; // W/(m·K)
 
         Ok(uom::si::f64::ThermalConductivity::new::<uom::si::thermal_conductivity::watt_per_meter_kelvin>(lambda))
+    }
+
+    /// Number Density from geopotential altitude.
+    /// 
+    /// The symbol for number density is _n_. 
+    /// 
+    /// The unit is m⁻³ (molecules per cubic meter). Therefore, `uom` is not used here.
+    /// 
+    /// 
+    /// Tabular values for number density are given in ICAO Doc 7488/3 Table 3.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use uom::si::f64::Length;
+    /// use aero_atmos::assert_eq_precision;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// // ICAO Doc 7488/3 Table 3: 
+    /// // H = 3.0 km => n = 1.8903e25 m⁻³
+    /// let altitude = Length::new::<uom::si::length::kilometer>(3.0);
+    /// let number_density = InternationalStandardAtmosphere::altitude_to_number_density(altitude).unwrap();
+    /// assert_eq_precision!(number_density, 1.8903e25, PRECISION);
+    /// ```
+    pub fn altitude_to_number_density(geopotential_altitude: uom::si::f64::Length) -> Result<f64, IsaError> {
+        let p = Self::altitude_to_pressure(geopotential_altitude)?.get::<pascal>(); // Pa
+        let t = Self::altitude_to_temperature(geopotential_altitude)?.get::<uom::si::thermodynamic_temperature::kelvin>(); // K
+        let r_star = Self::constant_universal_gas_constant(); // J/(kmol·K)
+        let n_a = Self::constant_avogadro_number(); // kmol^-1
+
+        // handle divide by zero
+        let divisor = r_star * t;
+        if divisor == 0.0 {return Err(IsaError::ComputationError);}
+
+        let n = (p * n_a) / divisor; // m^-3
+
+        Ok(n)
     }
 
     /// The earth's radius.
