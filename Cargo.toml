@@ -2,6 +2,12 @@
 name = "aero_atmos"
 version = "0.1.0"
 edition = "2024"
+description = "Standard Atmosphere models, including the International Standard Atmosphere (ISA)."
+repository = "https://github.com/inner-marker/aero_atmos"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+keywords = ["atmosphere", "aerospace", "standard atmosphere", "isa", "uom", "units of measurement", "icao"]
+categories = ["science", "aerospace", "aerospace::simulation"]
 
 [dependencies]
 rust_decimal = "1.39.0"
