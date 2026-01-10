@@ -2,7 +2,7 @@
 
 ## Implimentations
 
-### Geopotential altitude (H) __to__ ...
+### Geopotential altitude (H) __to__
 
 - [x] Temperature ($T$)
 - [ ] Temperature Ratio ($T/T_0$)
@@ -24,7 +24,7 @@
 
 Generally, __to__ functions will return a `Result<uom::si::f64::XXX>`, where `XXX` is the appropriate quantity.
 
-### Geopotential altitude (H) __from__ ...
+### Geopotential altitude (H) __from__
 
 For the __from__ functions, a `Result<Vec<uom::si::f64::Length>>` will be returned. For situations where multiple altitudes correspond to the input value (for example, temperature in the stratosphere), all possible geopotential altitudes will be returned in the `Vec<uom::si::f64::Length>`.
 
@@ -38,7 +38,9 @@ For the __from__ functions, a `Result<Vec<uom::si::f64::Length>>` will be return
 For most item marked complete, there are extensive tests in the `tests` module to verify the calculations to a precision of 0.0005 (0.05%).
 For some smaller functions, such as square root of density ratio, only a `doctest` may be provided.
 
-### Conbstants
+### Constants
+
+Functions are provided which return either an `f64` or a `uom::si::f64::XXX` for the following constants:
 
 - [x] Earth's Radius ($R_e$)
 - [x] Gravitational acceleration at sea level ($G$)
@@ -52,6 +54,21 @@ For some smaller functions, such as square root of density ratio, only a `doctes
 - [x] Effective collision diameter ($σ$)
 - [x] Standard pressure at sea level ($P_0$)
 
+## Layers
+
+According to ICAO Doc 7488/3, the atmosphere is divided into layers. Each layer has a base geopotential altitude ($H_b$), base temperature ($T_b$), base pressure ($P_b$), and temperature lapse rate ($β$). The layers are as follows:
+
+| Layer Name   | Geopotential Altitude Range         |
+|--------------|-------------------------------------|
+|              | -5 km to 0 km                       |
+| Troposphere  | 0 km to 11 km                       |
+| Tropopause   | 11 km to 20 km                      |
+| Stratosphere | 20 km to 32 km                      |
+| Stratopause  | 32 km to 47 km                      |
+| Mesosphere   | 47 km to 51 km                      |
+| Mesopause    | 51 km to 71 km                      |
+| Thermosphere | 71 km to 84.852 km                  |
+
 ## Symbols and Units
 
 THis table represents the symbols, units, and values (if applicable) used in the International Standard Atmosphere (ISA) model, ICAO Doc 7488/3.
@@ -59,9 +76,9 @@ THis table represents the symbols, units, and values (if applicable) used in the
 | Symbol        | Name                               | Unit             | Value (if applicable)           | Notes or Derrivation     |
 |---------------|------------------------------------|------------------|---------------------------------|--------------------------|
 |  $a$          | Speed of sound                     | $m/s$              |                                 |                          |
-|  $h$          | Geometric altitude                 | $m$                |                                 |                          |
 |  $g$          | acceleration due to gravity        | $m/s^2$             |                                 |                          |
 | $G$           | Standard gravity at sea level      | $m/s^2$             | 9.806_65                        |                          |
+|  $h$          | Geometric altitude                 | $m$                |                                 |                          |
 | $H$           | Geopotential altitude              | $m$                |                                 |                          |
 | $H_b$         | Base geopotential altitude         | $m$                | Varies by layer, 0 @ SL         |                          |
 | $l$           | Mean free path                     |                  |                                 |                          |
@@ -80,11 +97,11 @@ THis table represents the symbols, units, and values (if applicable) used in the
 | $t_0$       | Standard temperature @SL           | $°C$               | 15                              | $t_0 = T_0 - 273.15$  |
 | $T_i$       | Kelvin ice point temperature @SL   | $K$                | 273.15                          |                          |
 | $t_i$       | Celcius ice point temperature @SL  | $°C$               | 0                               | $t_i = T_i - 273.15$  |
-| $T_b$       | Base temperature at layer base     | $K$                | Varies by layer, 288.15 @ SL    |                          |
+| $T_b$       | Base temperature at layer base     | $K$                | Varies by layer    |                          |
 | $\bar{v}$  | Mean particle speed                | $m/s$              |                                 |                          |
 | $\rho$  | Air density                        | $kg/m³$            |                                 |                          |
 | $\rho_0$    | Standard air density @SL           | $kg/m³$            | 1.225                           |                          |
-| $\beta$ | Temperature lapse rate             | $K/km$             | Varies by layer, -6.5 @ SL      |                          |
+| $\beta$ | Temperature lapse rate             | $K/km$             | Varies by layer      |                          |
 | $\beta_S$   | Sutherland's Constant               | $kg/m•s•K^{1/2}$ | 1.458e-6                        |                          |
 | $\gamma$ | Specific weight                    | $N/m³$             |                                 | $\gamma = \rho g$      |
 | $\kappa$ | Ratio of specific heats            |                  | 1.4                             | Dimensionelss            |

@@ -7,11 +7,11 @@ This library provides interaction with multiple subjects relating to aerodynamic
 This crate seeks, in part, to provide access to some of the standard atmospheres used in aerospace and atmospheric science. The following atmospheres are planned:
 
 - International Standard Atmosphere (ISA) (ICAO Doc 7488/3, 1993)
-   - Work in progress. See [ISA.md](ISA.md) for details.
+  - Work in progress. See [ISA.md](ISA.md) for details.
 - US Standard Atmosphere, 1976
-    - Not yet started
+  - Not yet started
 - ISO Standard Atmosphere (ISO 2533, 1975)
-    - Not yet started
+  - Not yet started
 
 At altitudes near the earth's surface, these models provide similar data. However, the altitude ranges, some constants, and other details differ. Difrent applications require different atmospheres, so it is useful to have access to multiple models.
 

@@ -448,3 +448,36 @@ fn standard_specific_weight_tests () {
     let specific_weight = aero_atmos::InternationalStandardAtmosphere::altitude_to_specific_weight(altitude);
     assert_eq!(specific_weight, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
 }
+
+/// Test altitude_from_pressure
+/// Data from Table 4, H in feet
+#[test]
+fn altitude_from_pressure_tests () {
+    // (pressure in pascal, expected altitude in feet)
+    let test_data = [
+        (1.76799e5, -16_250.0),       // very low
+        (1.01325e5,        0.0),       // sea level
+        (5.49152e4,    16_000.0),     
+        (1.15972e4,    50_000.0),     
+        (1.09015e3,   100_000.0),     
+        (9.08455e-1,   262_000.0),     
+    ];
+
+    const PRECISION: f64 = 0.001; // 0.1%
+
+    for (p_pa, h_expected_ft) in test_data {
+        let pressure = uom::si::f64::Pressure::new::<uom::si::pressure::pascal>(p_pa);
+        let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_pressure(pressure).unwrap();
+        assert_eq_precision!(altitude.get::<uom::si::length::foot>(), h_expected_ft, PRECISION);
+    }
+
+    // too low
+    let pressure = uom::si::f64::Pressure::new::<uom::si::pressure::pascal>(0.0);
+    let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_pressure(pressure);
+    assert_eq!(altitude, Err(IsaError::InputOutOfRange), "Pressure is too low out of bounds.");
+
+    // too high
+    let pressure = uom::si::f64::Pressure::new::<uom::si::pressure::pascal>(200_000.0);
+    let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_pressure(pressure);
+    assert_eq!(altitude, Err(IsaError::InputOutOfRange), "Pressure is too high out of bounds.");
+}
