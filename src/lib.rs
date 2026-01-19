@@ -2,6 +2,14 @@
 //! 
 //! This library provides functions and calculations based on standard atmospheric models.
 //! 
+//! Numerous atmospheric models have been published. This crate seeks to replicate the International Standard Atmosphere (ISA) published by the International Civil Aviation Organization (ICAO) via Doc 7488/3.
+//! 
+//! It is intended that this crate will support other atmospheric models:
+//! 
+//! - [x] ICAO ISA, Doc 7488/3 (1993)
+//! - [ ] US Standard Atmosphere (1976)
+//! - [ ] ISO Standard Atmosphere, ISO 2533, (1975)
+//! 
 //! # Examples
 //! 
 //! ## Get the ISA Standard Pressure at a Given Geopotential Altitude

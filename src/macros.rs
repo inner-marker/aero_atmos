@@ -33,6 +33,7 @@ macro_rules! assert_eq_precision {
             // Values are exactly equal
         } else {
             let relative_difference = ((left_val - right_val) / right_val).abs();
+            // dbg!(relative_difference.clone());
             if relative_difference >= precision_val {
                 panic!(
                     "Assertion failed, Values' relative difference is greater than the precision: `(left ≈ right)`\n  left: `{:?}`,\n right: `{:?}`,\n precision: `{:?}`,\n relative difference: `{:?}`",
@@ -76,7 +77,37 @@ macro_rules! assert_eq_sigfigs {
             left_rounded: {}
             right_rounded: {}",
             $left, $right, left_rounded, right_rounded
-        )
+            )
         }
+    };
+}
+
+/// Debug macro for numerical values in scientific notation
+/// 
+/// Similar to `dbg!()` but prints a numeric value in scientific notation.
+/// 
+/// Just as `dbg!()` prints the file name and line number along with the value, 
+/// this macro prints the file name and line number along with the numeric value 
+/// in scientific notation.
+/// 
+/// The functionality of this macro only works in debug builds. In release builds, the macro does nothing.
+/// 
+/// # Arguments
+/// * `val` - The numeric value to print in scientific notation.
+/// * `decimal_places` - The number of decimal places to include in the scientific notation.
+/// 
+/// # Examples
+/// ```
+/// use aero_atmos::dbg_sci;
+/// 
+/// let x = 12345.6789;
+/// dbg_sci!(x, 3); // prints something like "[src/main.rs:10] x = 1.235e4"
+/// ```
+#[macro_export]
+macro_rules! dbg_sci {
+    ($val:expr, $decimal_places:expr) => {
+        // prevent this from being included in release builds
+        #[cfg(debug_assertions)]
+        println!("[{}:{}] {} = {:.*e}", file!(), line!(), stringify!($val), $decimal_places, $val);
     };
 }

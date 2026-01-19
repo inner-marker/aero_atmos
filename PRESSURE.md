@@ -59,3 +59,44 @@ $$ H =  H_b +  \frac{-RT_b\cdot\ln(P/P_b)}{Mg} $$
 For a layer with a constant lapse rate ($L\neq0$), the solution is:
 
 $$ H = H_b + \frac{T_b}{L \cdot (\frac{P}{P_b})^{\frac{Mg}{RL}}} $$
+
+```Rust
+fn altitude_to_pressure (geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::Pressure, IsaError> {
+    let t_base: f64 = Self::altitude_to_base_temperature(geopotential_altitude)?.get::<uom::si::thermodynamic_temperature::kelvin>(); // Kelvin
+    let h: f64 = geopotential_altitude.get::<uom::si::length::kilometer>(); // km
+    let h_base: f64 = Self::altitude_to_base_geopotential_altitude(geopotential_altitude)?.get::<uom::si::length::kilometer>(); // km
+    let m: f64 = Self::constant_molar_mass_air().get::<uom::si::molar_mass::gram_per_mole>(); // g/mol
+    let g: f64 = Self::constant_gravity_sealevel().get::<uom::si::acceleration::meter_per_second_squared>(); // m/s^2
+    let r_star: f64 = Self::constant_universal_gas_constant(); // J/(kmol·K)
+    let beta: f64 = Self::altitude_to_lapse_rate(geopotential_altitude)?; // K/km
+    
+    let p_base: f64 = match h {
+        h if -5.0 <= h && h <= 11.0 => {
+            101_325.0 // SL pressure in Pa
+        },
+        _ => {
+            // recursive call to get base pressure for higher layers
+            InternationalStandardAtmosphere::altitude_to_pressure(
+                uom::si::f64::Length::new::<uom::si::length::kilometer>(h_base)
+            )?.get::<uom::si::pressure::pascal>()
+        }
+    };
+
+    // Is `H`` out of range?
+    if h < -5.0 || h > 80.0 { return Err(IsaError::InputOutOfRange); }
+
+    // match lapse rate to determine pressure
+    let p = match beta {
+        beta if beta == 0.0 => {
+            // isothermal layer
+            p_base * (- ( (m * g * (h - h_base)) / (r_star * t_base) ) ).exp()
+        },
+        _ => {
+            // gradient layer
+            p_base * (t_base / (t_base + (beta * (h - h_base) )) ).powf( (m * g) / (r_star * beta))
+        }
+    };
+
+    return Ok(uom::si::f64::Pressure::new::<uom::si::pressure::pascal>(p));
+}
+```

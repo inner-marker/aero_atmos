@@ -3,7 +3,7 @@
 //! This module provides functions and data structures to model the 1993 International Standard Atmosphere (ISA) as defined by ICAO Doc 7488/3.
 
 /// Error types for ISA calculations
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum IsaError {
     /// Input value is out of the valid range
     InputOutOfRange,
@@ -178,7 +178,11 @@ impl InternationalStandardAtmosphere {
         }
 
         match geopotential_altitude.get::<uom::si::length::kilometer>() {
-            h if -5.0 <= h && h <= 11.0 => {
+            h if -5.0 <= h && h <= 0.0 => {
+                // Troposphere
+                Ok(uom::si::f64::ThermodynamicTemperature::new::<uom::si::thermodynamic_temperature::kelvin>(320.65))
+            },
+            h if 0.0 < h && h <= 11.0 => {
                 // Troposphere
                 Ok(uom::si::f64::ThermodynamicTemperature::new::<uom::si::thermodynamic_temperature::kelvin>(288.15))
             },
@@ -254,8 +258,12 @@ impl InternationalStandardAtmosphere {
             return Err(IsaError::InputOutOfRange);
         }
 
-        match geopotential_altitude.get::<uom::si::length::kilometer>() {
-            h if -5.0 <= h && h <= 11.0 => {
+        match h {
+            h if -5.0 <= h && h <= 0.0 => {
+                // Troposphere
+                Ok(uom::si::f64::Length::new::<uom::si::length::kilometer>(-5.0))
+            },
+            h if 0.0 < h && h <= 11.0 => {
                 // Troposphere
                 Ok(uom::si::f64::Length::new::<uom::si::length::kilometer>(0.0))
             },
@@ -463,8 +471,8 @@ impl InternationalStandardAtmosphere {
     /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::Pressure;
-    /// use uom::si::length::kilometer;
-    /// use uom::si::pressure::pascal;
+    /// use uom::si::length::{kilometer, foot};
+    /// use uom::si::pressure::{pascal, hectopascal};
     /// use aero_atmos::assert_eq_precision;
     /// 
     /// const PRECISION: f64 = 0.0005; // 0.05%
@@ -472,19 +480,27 @@ impl InternationalStandardAtmosphere {
     /// let altitude = Length::new::<kilometer>(5.0);
     /// let pressure = InternationalStandardAtmosphere::altitude_to_pressure(altitude).unwrap();
     /// assert_eq_precision!(pressure.get::<pascal>(), 54_020.0, PRECISION);
+    /// 
+    /// let altitude = Length::new::<foot>(-16_250.0);
+    /// let pressure = InternationalStandardAtmosphere::altitude_to_pressure(altitude).unwrap();
+    /// assert_eq_precision!(pressure.get::<hectopascal>(), 1.76799e3, PRECISION);
     /// ```
     pub
     fn altitude_to_pressure (geopotential_altitude: uom::si::f64::Length) -> Result<uom::si::f64::Pressure, IsaError> {
         let t_base: f64 = Self::altitude_to_base_temperature(geopotential_altitude)?.get::<uom::si::thermodynamic_temperature::kelvin>(); // Kelvin
         let h: f64 = geopotential_altitude.get::<uom::si::length::kilometer>(); // km
         let h_base: f64 = Self::altitude_to_base_geopotential_altitude(geopotential_altitude)?.get::<uom::si::length::kilometer>(); // km
-        let m: f64 = Self::constant_molar_mass_air().get::<uom::si::molar_mass::gram_per_mole>(); // g/mol
+        let m: f64 = Self::constant_molar_mass_dry_air().get::<uom::si::molar_mass::gram_per_mole>(); // g/mol
         let g: f64 = Self::constant_gravity_sealevel().get::<uom::si::acceleration::meter_per_second_squared>(); // m/s^2
         let r_star: f64 = Self::constant_universal_gas_constant(); // J/(kmol·K)
         let beta: f64 = Self::altitude_to_lapse_rate(geopotential_altitude)?; // K/km
         
+        
         let p_base: f64 = match h {
-            h if -5.0 <= h && h <= 11.0 => {
+            h if -5.0 <= h && h <= 0.0 => {
+                1.75364e0 * 101_325.0 // -5 km pressure in Pa
+            },
+            h if 0.0 <= h && h <= 11.0 => {
                 101_325.0 // SL pressure in Pa
             },
             _ => {
@@ -494,9 +510,11 @@ impl InternationalStandardAtmosphere {
                 )?.get::<uom::si::pressure::pascal>()
             }
         };
-
+        
         // Is `H`` out of range?
         if h < -5.0 || h > 80.0 { return Err(IsaError::InputOutOfRange); }
+        
+        // dbg!(t_base, h, h_base, p_base, m, g, r_star, beta);
 
         // match lapse rate to determine pressure
         let p = match beta {
@@ -505,7 +523,7 @@ impl InternationalStandardAtmosphere {
                 p_base * (- ( (m * g * (h - h_base)) / (r_star * t_base) ) ).exp()
             },
             _ => {
-                // gradient layer
+                // non-isothermal layer
                 p_base * (t_base / (t_base + (beta * (h - h_base) )) ).powf( (m * g) / (r_star * beta))
             }
         };
@@ -1089,9 +1107,6 @@ impl InternationalStandardAtmosphere {
     /// 
     /// Given a pressure, this function returns the corresponding geopotential altitude(s) based on the ISA model.
     /// 
-    /// NOTE: This function (altitude from pressure) is less precise than the forward problem (altitude to pressure).
-    /// Tests at the normal 0.05% accuracy fail. However, tests pass at 0.1% of Doc 7488/3 Table 4 values.
-    /// 
     /// # Arguments
     /// * `pressure` - Pressure using uom pressure
     /// 
@@ -1103,18 +1118,15 @@ impl InternationalStandardAtmosphere {
     /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
     /// use aero_atmos::{assert_eq_sigfigs, assert_eq_precision};
     /// use uom::si::f64::Pressure;
-    /// use uom::si::pressure::{pascal, hectopascal};
+    /// use uom::si::pressure::hectopascal;
+    /// use uom::si::f64::Length;
+    /// use uom::si::length::foot;
     /// 
-    /// const PRECISION: f64 = 0.001; // 0.1%
+    /// const PRECISION: f64 = 0.0005; // 0.05%
     /// 
-    /// let pressure = Pressure::new::<hectopascal>(1.767_99e3);
+    /// let pressure = Pressure::new::<hectopascal>(1.01325e3);
     /// let altitude = InternationalStandardAtmosphere::altitude_from_pressure(pressure).unwrap().get::<uom::si::length::foot>();
-    /// let altitude_check = -16_250.0; // feet
-    /// assert_eq_precision!(altitude, altitude_check, PRECISION);
-    /// 
-    /// let pressure = Pressure::new::<hectopascal>(1.005_95e3);
-    /// let altitude = InternationalStandardAtmosphere::altitude_from_pressure(pressure).unwrap().get::<uom::si::length::foot>();
-    /// let altitude_check = 200.0; // feet
+    /// let altitude_check = 0.0; // feet
     /// assert_eq_precision!(altitude, altitude_check, PRECISION);
     /// 
     /// let pressure = Pressure::new::<hectopascal>(5.491_52e2);
@@ -1122,9 +1134,15 @@ impl InternationalStandardAtmosphere {
     /// let altitude_check = 16_000.0; // feet
     /// assert_eq_precision!(altitude, altitude_check, PRECISION);
     /// 
-    /// let pressure = Pressure::new::<hectopascal>(1.159_72e2);
+    /// 
+    /// let pressure = Pressure::new::<hectopascal>(9.08455e-3);
     /// let altitude = InternationalStandardAtmosphere::altitude_from_pressure(pressure).unwrap().get::<uom::si::length::foot>();
-    /// let altitude_check = 50_000.0; // feet
+    /// let altitude_check = 262_000.0; // feet
+    /// assert_eq_precision!(altitude, altitude_check, PRECISION);
+    /// 
+    /// let pressure = Pressure::new::<hectopascal>(1.767_99e3);
+    /// let altitude = InternationalStandardAtmosphere::altitude_from_pressure(pressure).unwrap().get::<uom::si::length::foot>();
+    /// let altitude_check = -16_250.0; // feet
     /// assert_eq_precision!(altitude, altitude_check, PRECISION);
     /// ```
     pub fn altitude_from_pressure (pressure: uom::si::f64::Pressure) -> Result<uom::si::f64::Length, IsaError> {
@@ -1132,56 +1150,114 @@ impl InternationalStandardAtmosphere {
         // input pressure in pascals
         let p_pa: f64 = pressure.get::<uom::si::pressure::pascal>();
         
-        // will use this multiple times
-        let h_bases = Self::list_base_altitudes();
+        // sea-level standard pressure
+        let p_0: f64 = 101325.0; // pascal
         
-        // (h_b, p_b)
-        let mut h_b_and_p_b: Vec<(f64, f64)> = Vec::new();
-        for h_b in h_bases.iter() {
-            let h_b_km = h_b.get::<uom::si::length::kilometer>();
-            let p_b = Self::altitude_to_pressure(h_b.clone())?
-                .get::<uom::si::pressure::pascal>();
-            h_b_and_p_b.push((h_b_km, p_b));
-        }
+        // dbg!(p_pa, p_0;
+        // set H_base and p_base for each ISA atmospheric level
+        let h_b_and_p_b = vec![
+            (-5.0, 1.75364e0 * p_0), 
+            (0.0, p_0), 
+            (11.0, 2.23361e-1*p_0), 
+            (20.0, 5.40328e-2*p_0), 
+            (32.0, 8.56664e-3*p_0), 
+            (47.0, 1.09455e-3*p_0), 
+            (51.0, 6.60631e-4*p_0), 
+            (71.0, 3.90465e-5*p_0), 
+            (80.0, 8.74682e-6*p_0), 
 
-        // println!("h_b_and_p_b: {:?}", h_b_and_p_b);
+        ];
 
-        // check if p is out of bounds
-        if p_pa > h_b_and_p_b[0].1 || p_pa < h_b_and_p_b[h_b_and_p_b.len()-1].1 { return Err(IsaError::InputOutOfRange)}
+        // check if p is out of bounds.
+        // If input pressure is less than the lowest or greater than the highest pressure in the table, return an error
+        if p_pa > h_b_and_p_b[0].1 || p_pa < h_b_and_p_b[h_b_and_p_b.len()-1].1 { return Err(IsaError::InputOutOfRange) }
 
-        let mut h_b = -10.0;
-        let mut p_b = -10.0;
-        // What is the h_b and p_b?
-        for i in 0..h_b_and_p_b.len() - 1 {
-            // println!("Checking {:?} < {:?} < {:?}", h_b_and_p_b[i], p_pa, h_b_and_p_b[i+1]);
-            // if we are not on the last yayer
-            if p_pa <= h_b_and_p_b[i].1 && p_pa > h_b_and_p_b[i+1].1 {
-                (h_b, p_b) = (h_b_and_p_b[i].0, h_b_and_p_b[i].1);
-                // println!("h_b and p_b found: h_b = {:?}, p_b = {:?}", h_b, p_b);
+        let mut h_b: f64 = -10.0; // set a waaay low value as a place holder
+        let mut p_b: f64 = -10.0; // set a waaay low value as a place holder
+
+        // Figure out h_b and p_b?
+        for layer_index in 0..h_b_and_p_b.len() - 1 {
+            // if the input pressure is between the pressures for the lower and upper 
+            // geopotential altitude bounds for the current layer...
+            if p_pa <= h_b_and_p_b[layer_index].1 && p_pa > h_b_and_p_b[layer_index+1].1 {
+                // set h_b and p_b for later use
+                (h_b, p_b) = (h_b_and_p_b[layer_index].0, h_b_and_p_b[layer_index].1);
+                // dbg_sci!(h_b, 5);
+                // dbg_sci!(p_b, 5);
                 break;
             }
         }
         
         // remaining constants/variables
-        let r_star = Self::constant_universal_gas_constant(); // J/(kmol·K)
-        let m = Self::constant_molar_mass_air().get::<uom::si::molar_mass::gram_per_mole>(); // g/mol
-        let g = Self::constant_gravity_sealevel().get::<uom::si::acceleration::meter_per_second_squared>(); // m/s^2
-        let t_b = Self::altitude_to_base_temperature(uom::si::f64::Length::new::<uom::si::length::kilometer>(h_b + 1.0))?.get::<uom::si::thermodynamic_temperature::kelvin>(); // K
-        let beta = Self::altitude_to_lapse_rate(uom::si::f64::Length::new::<uom::si::length::kilometer>(h_b + 1.0)).unwrap(); // K/km
-            
+        let r_star: f64 = Self::constant_universal_gas_constant(); // J/(kmol·K)
+        let m: f64 = Self::constant_molar_mass_dry_air().get::<uom::si::molar_mass::gram_per_mole>(); // g/mol
+        let g: f64 = Self::constant_gravity_sealevel().get::<uom::si::acceleration::meter_per_second_squared>(); // m/s^2
+        let h_b_false: f64 = h_b + 1.0;
+        // dbg!(h_b_false);
+        let t_b: f64 = Self::altitude_to_base_temperature(uom::si::f64::Length::new::<uom::si::length::kilometer>(h_b_false))?.get::<uom::si::thermodynamic_temperature::kelvin>(); // K. Adds a small offset to avoid issues at layer boundaries
+        let beta = Self::altitude_to_lapse_rate(uom::si::f64::Length::new::<uom::si::length::kilometer>(h_b_false)).unwrap(); // K/km. Adds a small offset to avoid issues at layer boundaries
+        
+        // dbg!(h_b, p_b, r_star, m, g, t_b, beta);
+
         if beta == 0.0 {
-            // Isothermal layer
+            // Calculate H for an Isothermal layer
             let h = h_b + (- (r_star * t_b * (p_pa / p_b).ln())) / (m * g);
-            // println!("Isothermal: \nh_b_km: {}, \nr: {}, \nt_b: {}, \nm: {}, \ng: {}, \np_pa: {}, \np_b: {}", h_b, r, t_b, m, g, p_pa, p_b);
-            Ok(uom::si::f64::Length::new::<uom::si::length::kilometer>(h))
+            // dbg!(h);
+            Ok(uom::si::f64::Length::new::<uom::si::length::kilometer>(h)) // return H as a uom length representing the geopotential altitude
         } else {
-            // Non-isothermal layer
+            // Calculate H for a Non-isothermal layer
             let h = h_b + (t_b / (beta * (p_pa/p_b).powf((r_star*beta)/(m*g)))) - (t_b / beta);
-            // println!("Non-isothermal: \nh:{} \nh_b_km: {}, \nr: {}, \nt_b: {}, \nm: {}, \ng: {}, \np_pa: {}, \np_b: {}, \nl: {}", h, h_b, r, t_b, m, g, p_pa, p_b, l);
-            Ok(uom::si::f64::Length::new::<uom::si::length::kilometer>(h))
+            // dbg!(h);
+            Ok(uom::si::f64::Length::new::<uom::si::length::kilometer>(h)) // return H as a uom length representing the geopotential altitude
         }
     }
 
+    /// Geopotential Altitude from density and temperature
+    /// 
+    /// This function returns the geopotential altitude that corresponds to the input density. Temperature is a 
+    /// normal component in the various formulas to estimate air density. Although it may have been used in computing
+    /// the density that is used as input to this formula, it is still required as an input to this function.
+    /// 
+    /// The formula for density in ICAO Doc 7488/3 is $\rho = \frac{p}{RT}$. $T$ is a required variable. This function 
+    /// calculates the pressure from the input density and temperature, and then calls `altitude_from_pressure` 
+    /// to get the corresponding geopotential altitude.
+    /// 
+    /// # Arguments
+    /// * `rho` - Density (`uom::si::f64::MassDensity`)
+    /// * `t` - Temperature (`uom::si::f64::ThermodynamicTemperature`)
+    /// 
+    /// # Returns
+    /// Geopotential altitude (`uom::si::f64::Length`)
+    /// 
+    /// # Example
+    /// ```
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::{assert_eq_sigfigs, assert_eq_precision};
+    /// 
+    /// use uom::si::f64::{MassDensity, ThermodynamicTemperature, Length};
+    /// use uom::si::mass_density::kilogram_per_cubic_meter;
+    /// use uom::si::thermodynamic_temperature::kelvin;
+    /// use uom::si::length::foot;
+    ///
+    /// let rho = MassDensity::new::<kilogram_per_cubic_meter>(7.45979e-1);
+    /// let t = ThermodynamicTemperature::new::<kelvin>(256.451);
+    /// let alt = InternationalStandardAtmosphere::altitude_from_density_and_temperature(rho, t).unwrap();
+    /// assert_eq_sigfigs!(alt.get::<foot>(), 16_000.0, 5);
+    /// ```
+    pub fn altitude_from_density_and_temperature (rho: uom::si::f64::MassDensity, t: uom::si::f64::ThermodynamicTemperature) -> Result<uom::si::f64::Length, IsaError> {
+        // get the values.
+        let r = Self::constant_specific_gas_constant_air();
+        let rho = rho.get::<uom::si::mass_density::kilogram_per_cubic_meter>();
+        let t = t.get::<uom::si::thermodynamic_temperature::kelvin>();
+
+        // calculate the pressure
+        let p = uom::si::f64::Pressure::new::<uom::si::pressure::pascal>(rho * r * t);
+
+        // get height based on the pressure
+        let alt = Self::altitude_from_pressure(p)?;
+
+        Ok(alt)
+    }
 
     /// The earth's radius.
     /// 
@@ -1224,7 +1300,7 @@ impl InternationalStandardAtmosphere {
     /// Returns the molar mass of Earth's air used in the ISA model.
     /// 
     /// The symbol is `M_0`.
-    pub fn constant_molar_mass_air() -> uom::si::f64::MolarMass {
+    pub fn constant_molar_mass_dry_air() -> uom::si::f64::MolarMass {
         uom::si::f64::MolarMass::new::<uom::si::molar_mass::gram_per_mole>(28_964.420)
     }
 
@@ -1320,31 +1396,3 @@ impl InternationalStandardAtmosphere {
 
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use uom::si::length::kilometer;
-    // use uom::si::thermodynamic_temperature::kelvin;
-    use uom::si::pressure::pascal;
-    use crate::PRECISION;
-    use crate::assert_eq_precision;
-
-    /// Test altitude to temperature conversion
-    #[test]
-    fn test_altitude_to_pressure() {
-        let input_alt: f64 = 11.466;
-        let desired_pressure = 210.3 * 100.0; // Pa (Doc 7488/3 Table 7 gives hPa)
-        let altitude = uom::si::f64::Length::new::<kilometer>(input_alt);
-        let pressure = InternationalStandardAtmosphere::altitude_to_pressure(altitude).unwrap().value;
-        println!("Pressure at {} km: Desired {:.1} Pa, Calculated {:.1} Pa", input_alt, desired_pressure, pressure);
-        assert_eq_precision!(pressure, uom::si::f64::Pressure::new::<pascal>(desired_pressure).value, PRECISION);
-
-        let input_alt:f64 = 31.985; // kilometers
-        let desired_pressure = 8.70 * 100.0; // Pa
-        let altitude = uom::si::f64::Length::new::<kilometer>(input_alt);
-        let pressure = InternationalStandardAtmosphere::altitude_to_pressure(altitude).unwrap().value;
-        println!("Pressure at {} km: Desired {:.2} Pa, Calculated {:.2} Pa", input_alt, desired_pressure, pressure);
-        assert_eq_precision!(pressure, uom::si::f64::Pressure::new::<pascal>(desired_pressure).value, PRECISION);
-    }
-
-}

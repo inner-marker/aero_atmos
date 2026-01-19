@@ -28,10 +28,8 @@ Generally, __to__ functions will return a `Result<uom::si::f64::XXX>`, where `XX
 
 For the __from__ functions, a `Result<Vec<uom::si::f64::Length>>` will be returned. For situations where multiple altitudes correspond to the input value (for example, temperature in the stratosphere), all possible geopotential altitudes will be returned in the `Vec<uom::si::f64::Length>`.
 
-- [ ] Temperature ($T$)
-- [ ] Temperature Ratio ($T/T_0$)
-- [ ] Pressure ($P$)
-- [ ] Pressure Ratio ($p/P_0$)
+- [x] Pressure ($P$)
+- [ ] Pressure Ratio ($P/P_0$)
 - [ ] Density ($\rho$, rho)
 - [ ] Density Ratio ($\rho/\rho_0$)
 
@@ -120,3 +118,4 @@ THis table represents the symbols, units, and values (if applicable) used in the
 ## Pressure
 
 See [PRESSURE.md](PRESSURE.md) for the formulas and constants used in pressure calculations.
+
