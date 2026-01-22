@@ -12,7 +12,7 @@ pub enum IsaError {
     ComputationError,
 }
 
-/// Struuct for the International Standard Atmosphere
+/// Struct that models the International Standard Atmosphere
 /// 
 /// This struct contains methods to compute various atmospheric properties based on the International Standard Atmosphere (ISA) model.
 /// 
@@ -21,8 +21,10 @@ pub enum IsaError {
 /// Computations are based on the values and equations provided in the document. Some more accurate or precise 
 /// methods and values may exist elsewhere, but this implementation aims to closely follow the ISA specification.
 /// 
-/// For all methods where physical quantities are involved, the `uom` crate is used to ensure type safety and unit correctness.
-/// Some values are unitless, so are represented as `f64`.
+/// For all methods where physical quantities are involved, the `uom` crate is used to ensure type safety and unit correctness. Additionally,
+/// `uom` allows for retrieving values in a desired unit easily. See the examples for each function, or the `uom` documentation for more details.
+/// 
+/// Some values are unitless, so are represented as `f64`. Some other physical quantities are represented as `f64` because `uom` does not currently support them directly or for simplicity in calculations.
 pub struct InternationalStandardAtmosphere {
 }
 
@@ -143,9 +145,38 @@ impl InternationalStandardAtmosphere {
         Ok(uom::si::f64::ThermodynamicTemperature::new::<uom::si::thermodynamic_temperature::kelvin>(t0 + lapse_rate * delta_h))
     }
 
+    /// Temperature Ratio ($T/T_0$)
+    /// 
+    /// Returns the temperature ratio ($T/T_0$) for a given geopotential altitude.
+    /// 
+    /// The temperature ratio is defined as the ratio of the temperature at the given altitude to the standard temperature at sea level ($T_0 = 288.15$ K).
+    /// 
+    /// The valid range for geopotential altitude is -5 km to 80 km.
+    /// 
+    /// # Arguments
+    /// * `geopotential_altitude` - Geopotential altitude using uom length.
+    /// 
+    /// # Example
+    /// ```rust
+    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::assert_eq_precision;
+    /// use uom::si::f64::Length;
+    /// use uom::si::length::foot;
+    /// 
+    /// const PRECISION: f64 = 0.0005; // 0.05%
+    /// 
+    /// let altitude = Length::new::<foot>(16_000.0);
+    /// let temperature_ratio = InternationalStandardAtmosphere::altitude_to_temperature_ratio(altitude).unwrap();
+    /// assert_eq_precision!(temperature_ratio, 256.451/288.15, PRECISION);
+    /// ```
+    pub fn altitude_to_temperature_ratio(geopotential_altitude: uom::si::f64::Length) -> Result<f64, IsaError> {
+        let temperature = Self::altitude_to_temperature(geopotential_altitude)?;
+        Ok(temperature.get::<uom::si::thermodynamic_temperature::kelvin>() / 288.15)
+    }
+
     /// Base temperature for a geopotential altitude layer
     /// 
-    /// THis function returns the base temperature for the layer that contains the given geopotential altitude. If
+    /// This function returns the base temperature for the layer that contains the given geopotential altitude. If
     /// the given altitude is equal to the bottom of a layer, the base temperature for the next lower layer is returned.
     /// 
     /// The valid range for geopotential altitude is -5 km to 80 km.
@@ -1106,6 +1137,8 @@ impl InternationalStandardAtmosphere {
     /// Geopotential Altitude(s) from Pressure
     /// 
     /// Given a pressure, this function returns the corresponding geopotential altitude(s) based on the ISA model.
+    /// 
+    /// Tabular data for pressure to geopotential altitude is found in ICAO Doc 7488/3 Table 7.
     /// 
     /// # Arguments
     /// * `pressure` - Pressure using uom pressure

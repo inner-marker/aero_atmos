@@ -504,7 +504,8 @@ fn test_altitude_from_density_and_temperature () {
     // (density in kg/m^3, temperature in K, expected altitude in feet)
     let test_data = [
         (1.92265e0,   320.345,    -16_250.0),
-        //(1.22500e0,   288.150,        200.0),
+        //(1.22500e0,   288.150,          0.0),
+        (1.21785e0,   287.754,        200.0),
         (7.45979e-1,  256.451,     16_000.0),
         (1.86481e-1,  216.650,     50_000.0),
         (1.60701e-5,  196.935,    262_000.0),

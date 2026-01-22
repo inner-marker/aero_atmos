@@ -2,35 +2,35 @@
 
 ## Implimentations
 
-### Geopotential altitude (H) __to__
+### Geopotential altitude ($H$) __to__
 
 - [x] Temperature ($T$)
-- [ ] Temperature Ratio ($T/T_0$)
+- [x] Temperature Ratio ($T/T_0$)
 - [x] Pressure ($P$)
 - [x] Pressure Ratio ($p/P_0$)
 - [x] Density ($\rho$, rho)
 - [x] Density Ratio ($\rho/\rho_0$)
 - [x] Square Root of Density Ratio ($\sqrt{\rho/\rho_0}$)
 - [x] Speed of Sound ($a$)
-- [x] Dynamic Viscosity (μ, mu)
+- [x] Dynamic Viscosity ($\mu$, mu)
 - [x] Kinematic Viscosity ($ν$) ($ν = μ/ρ$)
 - [x] Thermal Conductivity ($λ$, lambda)
 - [x] Number Density ($n$) ($N = \rho/M$)
 - [x] Mean particle speed ($\bar{v}$)
-- [x] Mean free path ($ l $)
+- [x] Mean free path ($l$)
 - [x] Collision Frequency ($\omega$)
 - [x] Gravity acceleration, local $g$
-- [x] Specific Weight ($γ$, gamma) $\gamma = \rho g$
+- [x] Specific Weight ($\gamma$, gamma) $\gamma = \rho g$
 
 Generally, __to__ functions will return a `Result<uom::si::f64::XXX>`, where `XXX` is the appropriate quantity.
 
-### Geopotential altitude (H) __from__
+### Geopotential altitude ($H$) __from__
 
-For the __from__ functions, a `Result<Vec<uom::si::f64::Length>>` will be returned. For situations where multiple altitudes correspond to the input value (for example, temperature in the stratosphere), all possible geopotential altitudes will be returned in the `Vec<uom::si::f64::Length>`.
+For the __from__ functions, where appropriate, a `Result<Vec<uom::si::f64::Length>, IsaError>` will be returned. For situations where multiple altitudes correspond to the input value (for example, temperature in the stratosphere), all possible geopotential altitudes will be returned. For all other situations, the function returns a `Result<uom::si::f64::Length, IsaError>`.
 
 - [x] Pressure ($P$)
 - [ ] Pressure Ratio ($P/P_0$)
-- [ ] Density ($\rho$, rho)
+- [x] Density ($\rho$, rho)
 - [ ] Density Ratio ($\rho/\rho_0$)
 
 For most item marked complete, there are extensive tests in the `tests` module to verify the calculations to a precision of 0.0005 (0.05%).
@@ -102,16 +102,12 @@ THis table represents the symbols, units, and values (if applicable) used in the
 | $\beta$ | Temperature lapse rate             | $K/km$             | Varies by layer      |                          |
 | $\beta_S$   | Sutherland's Constant               | $kg/m•s•K^{1/2}$ | 1.458e-6                        |                          |
 | $\gamma$ | Specific weight                    | $N/m³$             |                                 | $\gamma = \rho g$      |
-| $\kappa$ | Ratio of specific heats            |                  | 1.4                             | Dimensionelss            |
+| $\kappa$ | Ratio of specific heats            |                  | 1.4                             | Dimensionels            |
 | $\lambda$ | Thermal conductivity               | $W/(m·K)$          |                                 |                          |
 | $\mu$    | Dynamic viscosity                  | $Pa·s$             |                                 |                          |
 | $\nu$    | Kinematic viscosity                | $m²/s$             |                                 |                          |
 | $\sigma$    | Effective collision diameter       | $m$                | 0.365e-9                        |                          |
 | $\omega$   | Collision frequency                | $s^{-1}$       |                                 |                          |
-|               |                                    |                  |                                 |                          |
-|               |                                    |                  |                                 |                          |
-|               |                                    |                  |                                 |                          |
-|               |                                    |                  |                                 |                          |
 
 [Greek letters.](GREEK.md)
 

@@ -1,6 +1,46 @@
-//! These macros module contains custom macros used throughout the crate.
+//! These macros module contains custom macros used primarily for testing.
 //! 
 //! The two macros here are used primarily in testing to assert numerical equality within specified tolerances. However, they can be used in other contexts as needed.
+//! 
+//! # Examples
+//! 
+//! ## assert_eq_precision
+//! 
+//! This macro checks whether two numerical values are approximately equal within a specified precision (ratio). 
+//! 
+//! ```rust
+//! use aero_atmos::assert_eq_precision;
+//! let a: f64 = 100.0;
+//! let b: f64 = 100.04;
+//! let precision: f64 = 0.0005; // 0.05%
+//! assert_eq_precision!(a, b, precision); // This will pass
+//! 
+//! let c: f64 = 100.1;
+//! // assert_eq_precision!(a, c, precision); // This will panic
+//! ```
+//! 
+//! ## assert_eq_sigfigs
+//! 
+//! This macro checks whether two numerical values are approximately equal when rounded to a specified number of significant figures. 
+//! 
+//! ```rust
+//! use aero_atmos::assert_eq_sigfigs;
+//! assert_eq_sigfigs!(1.11111, 1.11222, 3); // <- will pass     (1.11  == 1.11)
+//! assert_eq_sigfigs!(1.1118, 1.1122, 4); // <- will pass    (1.112 == 1.112)
+//! ```
+//! 
+//! ## dbg_sci
+//! 
+//! This macro prints a numerical value, the expression that generates it (variable), in scientific notation for debugging purposes.
+//! Additionally, it prints the file name and line number where the macro is invoked. Notably, this macro is only effective in debug builds; it 
+//! is not included in release builds.
+//! 
+//! ```rust
+//! use aero_atmos::dbg_sci;
+//! 
+//! let x = 12345.6789;
+//! dbg_sci!(x, 3); // prints something like "[src/main.rs:10] x = 1.235e4"
+//! ```
 
 /// Macro that checks whether two numerical values are approximately equal within a specified precision. Used in tests.
 /// 
