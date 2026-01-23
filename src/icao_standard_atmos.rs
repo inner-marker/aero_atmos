@@ -1,6 +1,64 @@
 //! The International Standard Atmosphere (ISA) module.
 //! 
 //! This module provides functions and data structures to model the 1993 International Standard Atmosphere (ISA) as defined by ICAO Doc 7488/3.
+//! 
+//! # Examples
+//! 
+//! Convert between geopotential and geometric altitudes
+//! 
+//! ```rust
+//! use aero_atmos::icao_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+//! use uom::si::f64::Length;
+//! use uom::si::length::meter;
+//! 
+//! let geopotential_altitude = Length::new::<meter>(10000.0);
+//! let geometric_altitude = InternationalStandardAtmosphere::altitude_geopotential_to_geometric(geopotential_altitude).unwrap();
+//! ```
+//! 
+//! A few constants are defined in the ISA model. These constants are made available through functions.
+//! Some of these constants return `uom::X` types, while others return plain `f64` values.
+//! 
+//! ```rust
+//! use aero_atmos::icao_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+//! 
+//! // earth's radius, as defined in ISA
+//! let r = InternationalStandardAtmosphere::constant_earth_radius();
+//! 
+//! // Molar mass of dry air, as defined in ISA
+//! let m = InternationalStandardAtmosphere::constant_molar_mass_dry_air();
+//! ```
+//! 
+//! Get the standard density given a geopotential altitude.
+//! 
+//! ```rust
+//! use aero_atmos::icao_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+//! use uom::si::f64::Length;
+//! use uom::si::length::meter;
+//! use uom::si::f64::MassDensity;
+//! use uom::si::mass_density::kilogram_per_cubic_meter;
+//! 
+//! let geopotential_altitude = Length::new::<meter>(10_000.0);
+//! let density = InternationalStandardAtmosphere::altitude_to_density(geopotential_altitude).unwrap();
+//! 
+//! let density_numeric = density.get::<uom::si::mass_density::kilogram_per_cubic_meter>();
+//! ```
+//! 
+//! Get the geopotential altitude for a given density. In aviation, this number might be refered to as the "density altitude".
+//! 
+//! ```rust
+//! use aero_atmos::icao_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+//! use uom::si::f64::MassDensity;
+//! use uom::si::mass_density::kilogram_per_cubic_meter;
+//! use uom::si::f64::ThermodynamicTemperature;
+//! use uom::si::thermodynamic_temperature::kelvin;
+//! use uom::si::f64::Length;
+//! use uom::si::length::foot;
+//! 
+//! let density = MassDensity::new::<kilogram_per_cubic_meter>(1.225);
+//! let temperature = ThermodynamicTemperature::new::<kelvin>(288.15);
+//! let geopotential_altitude = InternationalStandardAtmosphere::altitude_from_density_and_temperature(density, temperature).unwrap();
+//! let geopotentia_altitude_feet = geopotential_altitude.get::<uom::si::length::foot>();
+//! ```
 
 /// Error types for ISA calculations
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -67,10 +125,10 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
-    /// use uom::si::f64::ThermodynamicTemperature;
     /// use uom::si::length::foot;
+    /// use uom::si::f64::ThermodynamicTemperature;
     /// use uom::si::thermodynamic_temperature::kelvin;
     /// use aero_atmos::assert_eq_precision;
     /// 
@@ -158,7 +216,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use aero_atmos::assert_eq_precision;
     /// use uom::si::f64::Length;
     /// use uom::si::length::foot;
@@ -186,7 +244,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::ThermodynamicTemperature;
     /// use uom::si::length::kilometer;
@@ -273,7 +331,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::length::kilometer;
     /// 
@@ -344,7 +402,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::length::kilometer;
     /// 
@@ -412,7 +470,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::length::meter;
     /// use aero_atmos::assert_eq_precision;
@@ -456,7 +514,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::length::meter;
     /// use aero_atmos::assert_eq_precision;
@@ -499,7 +557,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::Pressure;
     /// use uom::si::length::{kilometer, foot};
@@ -579,7 +637,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+    /// use aero_atmos::icao_standard_atmos::{InternationalStandardAtmosphere, IsaError};
     /// use uom::si::f64::Length;
     /// use uom::si::length::kilometer;
     /// use aero_atmos::assert_eq_precision;
@@ -621,7 +679,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::MassDensity;
     /// use uom::si::length::foot;
@@ -665,7 +723,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+    /// use aero_atmos::icao_standard_atmos::{InternationalStandardAtmosphere, IsaError};
     /// use uom::si::f64::Length;
     /// use uom::si::length::meter;
     /// use aero_atmos::assert_eq_precision;
@@ -703,7 +761,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::{InternationalStandardAtmosphere, IsaError};
+    /// use aero_atmos::icao_standard_atmos::{InternationalStandardAtmosphere, IsaError};
     /// use uom::si::f64::Length;
     /// use uom::si::length::meter;
     /// use aero_atmos::assert_eq_precision;
@@ -738,7 +796,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::Velocity;
     /// use uom::si::length::foot;
@@ -775,7 +833,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::DynamicViscosity;
     /// use uom::si::length::foot;
@@ -811,7 +869,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::KinematicViscosity;
     /// use uom::si::length::foot;
@@ -849,7 +907,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::ThermalConductivity;
     /// use uom::si::length::foot;
@@ -892,7 +950,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use aero_atmos::assert_eq_precision;
     /// 
@@ -933,7 +991,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::Velocity;
     /// use uom::si::length::meter;
@@ -977,7 +1035,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::length::meter;
     /// use aero_atmos::assert_eq_precision;
@@ -1017,7 +1075,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::Frequency;
     /// use uom::si::length::meter;
@@ -1060,7 +1118,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::f64::Acceleration;
     /// use uom::si::length::foot;
@@ -1112,7 +1170,7 @@ impl InternationalStandardAtmosphere {
     ///
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::length::meter;
     /// use aero_atmos::assert_eq_precision;
@@ -1148,7 +1206,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Examples
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use aero_atmos::{assert_eq_sigfigs, assert_eq_precision};
     /// use uom::si::f64::Pressure;
     /// use uom::si::pressure::hectopascal;
@@ -1264,7 +1322,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use aero_atmos::{assert_eq_sigfigs, assert_eq_precision};
     /// 
     /// use uom::si::f64::{MassDensity, ThermodynamicTemperature, Length};
@@ -1303,7 +1361,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::length::kilometer;
     ///
@@ -1397,7 +1455,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Length;
     /// use uom::si::length::meter;
     /// 
@@ -1416,7 +1474,7 @@ impl InternationalStandardAtmosphere {
     /// 
     /// # Example
     /// ```rust
-    /// use aero_atmos::intl_standard_atmos::InternationalStandardAtmosphere;
+    /// use aero_atmos::icao_standard_atmos::InternationalStandardAtmosphere;
     /// use uom::si::f64::Pressure;
     /// use uom::si::pressure::hectopascal;
     ///

@@ -1,18 +1,25 @@
-//! # Atmospheric and Aeronautical Calculations Library
+//! # aero_atmos: an Atmospheric and Aeronautical Calculations Library
+//! 
+//! ## Atmospheric Models
 //! 
 //! This library provides functions and calculations based on standard atmospheric models.
 //! 
-//! Numerous atmospheric models have been published. This crate seeks to replicate the International Standard Atmosphere (ISA) published by the International Civil Aviation Organization (ICAO) via Doc 7488/3.
+//! Numerous atmospheric models have been published. This crate seeks to replicate the calculations contained in these models.
 //! 
-//! It is intended that this crate will support other atmospheric models:
+//! It is intended that this crate will support these atmospheric models:
 //! 
 //! - [x] ICAO ISA, Doc 7488/3 (1993)
 //! - [ ] US Standard Atmosphere (1976)
 //! - [ ] ISO Standard Atmosphere, ISO 2533, (1975)
 //! 
+//! ## Aerodynamics
+//! 
+//! This library does not yet support aerodynamic calculations. In the future, the intent is
+//! to provide integration between atmospheric models and aerodynamic calculations.
+//! 
 //! # Examples
 //! 
-//! ## Get the ISA Standard Pressure at a Given Geopotential Altitude
+//! Get the ISA Standard Pressure at a Given Geopotential Altitude
 //! 
 //! ```rust
 //! use aero_atmos::InternationalStandardAtmosphere;
@@ -40,7 +47,7 @@
 //! }
 //! ```
 //! 
-//! ## Convert between Geopotential and Geometric Altitudes
+//! Convert between Geopotential and Geometric Altitudes
 //! 
 //! The ISA uses an appoximation formula to convert between geopotential and geometric altitudes.
 //! 
@@ -67,7 +74,7 @@
 //! }
 //!```
 //! 
-//! ## Get the Geometric altitude for a given pressure.
+//! Get the Geometric altitude for a given pressure.
 //! 
 //! ```rust
 //! use aero_atmos::InternationalStandardAtmosphere;
@@ -96,12 +103,12 @@
 //! // prints something like "[src/main.rs:36] geometric_altitude.get::<meter>() = 5.5793e3"
 //! ```
 
-pub mod intl_standard_atmos;
-pub use intl_standard_atmos::InternationalStandardAtmosphere;
+pub mod icao_standard_atmos;
+pub use icao_standard_atmos::InternationalStandardAtmosphere;
 
 pub mod macros;
 
-/// Precision for testing. 0.05%. 
+/// Precision constant for testing. 0.05%. 
 /// 
 /// Most or all tests comnpare the output of these functions to the
 /// tabular data in the tables of the ICAO Doc 7488/3 (1993). Most or all

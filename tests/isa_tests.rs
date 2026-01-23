@@ -1,6 +1,6 @@
 //! These are tests for the ISA atmospheric model
 
-use aero_atmos::{assert_eq_sigfigs, intl_standard_atmos::IsaError};
+use aero_atmos::{assert_eq_sigfigs, icao_standard_atmos::IsaError};
 use uom::si::{length::*, pressure::hectopascal};
 
 // use aero_atmos::{InternationalStandardAtmosphere};

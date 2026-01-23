@@ -1,6 +1,6 @@
-//! These macros module contains custom macros used primarily for testing.
+//! This macros module contains custom macros used primarily for testing.
 //! 
-//! The two macros here are used primarily in testing to assert numerical equality within specified tolerances. However, they can be used in other contexts as needed.
+//! The macros here are used primarily in testing to assert numerical equality within specified tolerances. However, they can be used in other contexts as needed.
 //! 
 //! # Examples
 //! 
@@ -39,7 +39,7 @@
 //! use aero_atmos::dbg_sci;
 //! 
 //! let x = 12345.6789;
-//! dbg_sci!(x, 3); // prints something like "[src/main.rs:10] x = 1.235e4"
+//! dbg_sci!(x, 3); // prints something like "[src/main.rs:10] x = 1.234e4"
 //! ```
 
 /// Macro that checks whether two numerical values are approximately equal within a specified precision. Used in tests.
