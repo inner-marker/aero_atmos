@@ -1,6 +1,6 @@
 //! These are tests for the ISA atmospheric model
 
-use aero_atmos::{assert_eq_sigfigs, intl_standard_atmos::IsaError};
+use aero_atmos::{assert_eq_sigfigs, icao_standard_atmos::IsaError};
 use uom::si::{length::*, pressure::hectopascal};
 
 // use aero_atmos::{InternationalStandardAtmosphere};
@@ -9,7 +9,7 @@ use aero_atmos::{assert_eq_precision, PRECISION};
 
 /// Test for Standard temperature.
 #[test]
-fn standard_temperature_tests () {
+fn test_standard_temperature_tests () {
     // test data (geopotential altitude in feet, temperature in kelvin)
     // Table 4 from Doc7488
     let test_data = [
@@ -41,7 +41,7 @@ fn standard_temperature_tests () {
 
 /// Test for Standard pressure.
 #[test]
-fn standard_pressure_tests () {
+fn test_altitude_to_pressure () {
     // test data base on Table 4: 
     // vec of (geopotential altitude in feet, pressure in hectopascals)
     let test_data = [
@@ -73,7 +73,7 @@ fn standard_pressure_tests () {
 
 /// Test pressure ratios from altitude.
 #[test]
-fn standard_pressure_ratio_tests () {
+fn test_standard_pressure_ratio () {
     // test data based on Table 5:
     // (geopotential altitude in feet, pressure ratio)
     let test_data = [
@@ -105,7 +105,7 @@ fn standard_pressure_ratio_tests () {
 
 /// Density tests
 #[test]
-fn standard_density_tests () {
+fn test_standard_density () {
     // test data base on Table 4: 
     // vec of (geopotential altitude in feet, density in kg/m^3)
     let test_data = [
@@ -136,7 +136,7 @@ fn standard_density_tests () {
 
 /// Density ratio tests
 #[test]
-fn standard_density_ratio_tests () {
+fn test_standard_density_ratio () {
     // (alt in km, density ratio)
     // data from Doc7488, Table 2
     let test_data = vec! [
@@ -166,7 +166,7 @@ fn standard_density_ratio_tests () {
 
 /// Speed of sound tests
 #[test]
-fn standard_speed_of_sound_tests () {
+fn test_standard_speed_of_sound () {
 
     // Test values from Doc7488, Table 2, given as ('H' in ft, 'a' in m/s)
     let test_values = vec![
@@ -198,7 +198,7 @@ fn standard_speed_of_sound_tests () {
 
 /// Dynamic viscosity tests
 #[test]
-fn standard_dynamic_viscosity_tests () {
+fn test_standard_dynamic_viscosity () {
     // Test values from Doc7488, Table 5, given as ('H' in ft, 'mu' in microPascal seconds)
     let test_values = vec![
         (-16_000.0,  1.9385e-5),     // very low in the range
@@ -228,7 +228,7 @@ fn standard_dynamic_viscosity_tests () {
 
 /// Thermal conductivity tests
 #[test]
-fn standard_thermal_conductivity_tests () {
+fn test_standard_thermal_conductivity () {
     // Test values from Doc7488, Table 5, given as ('H' in ft, 'lambda' in W/(m·K))
     let test_values = vec![
         (-16_000.0,  2.7798e-2),     // very low in the range
@@ -258,7 +258,7 @@ fn standard_thermal_conductivity_tests () {
 
 /// Number Density tests
 #[test]
-fn standard_number_density_tests () {
+fn test_standard_number_density () {
     // test data (geopotential altitude in kilometers, number density in molecules per cubic meter)
     // Table 3 from Doc7488
     let test_values = vec![
@@ -290,7 +290,7 @@ fn standard_number_density_tests () {
 
 /// Mean particle speed tests
 #[test]
-fn standard_mean_particle_speed_tests () {
+fn test_standard_mean_particle_speed () {
     // Test values from Doc7488, ('H' in meters, 'v_bar' in m/s)
     // Table 3 from Doc7488
     let test_values = vec![
@@ -322,7 +322,7 @@ fn standard_mean_particle_speed_tests () {
 
 /// Mean free path tests
 #[test]
-fn standard_mean_free_path_tests () {
+fn test_standard_mean_free_path () {
     // Test values from Doc7488, ('H' in meters, 'l' in meters)
     // Table 3 from Doc7488
     let test_values = vec![
@@ -353,7 +353,7 @@ fn standard_mean_free_path_tests () {
 
 /// Collision frequency tests
 #[test]
-fn standard_collision_frequency_tests () {
+fn test_standard_collision_frequency () {
     // Test values from Doc7488, ('H' in meters, 'omega' in Hz)
     // Table 3 from Doc7488
     let test_values = vec![
@@ -387,7 +387,7 @@ fn standard_collision_frequency_tests () {
 /// Tabular values for gravitational acceleration are given in ICAO Doc 7488/3 Table 4.
 /// Geopotential altitude in Table 4 is given in feet.
 #[test]
-fn standard_gravity_tests () {
+fn test_standard_gravity () {
     // test data (geopotential altitude in feet, gravity in m/s^2)
     let test_data = [
         (-16_250.0, 9.8219),    // very low in the range
@@ -419,7 +419,7 @@ fn standard_gravity_tests () {
 /// Tabular values for specific weight are given in ICAO Doc 7488/3 Table 3.
 /// Values for geopotential altitude are given in meters.
 #[test]
-fn standard_specific_weight_tests () {
+fn test_standard_specific_weight_tests () {
     // test data base on Table 4: 
     // vec of (geopotential altitude in kilometers, specific weight in N/m^3)
     let test_data = [
@@ -447,4 +447,87 @@ fn standard_specific_weight_tests () {
     let altitude = uom::si::f64::Length::new::<kilometer>(85.0);
     let specific_weight = aero_atmos::InternationalStandardAtmosphere::altitude_to_specific_weight(altitude);
     assert_eq!(specific_weight, Err(IsaError::InputOutOfRange), "Geopotential altitude is too high out of bounds.");
+}
+
+/// Test altitude_from_pressure
+/// Data from Table 4, H in feet
+#[test]
+fn test_altitude_from_pressure () {
+    // (pressure in pascal, expected altitude in feet)
+    let test_data = [
+        (1.01325e3,        0.0),       // sea level
+        (5.49152e2,    16_000.0),     
+        (1.15972e2,    50_000.0),     
+        (1.09015e1,   100_000.0),     
+        (9.08455e-3,  262_000.0),     
+    ];
+
+    for (p_pa, h_expected_ft) in test_data {
+        let pressure = uom::si::f64::Pressure::new::<uom::si::pressure::hectopascal>(p_pa);
+        let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_pressure(pressure).unwrap();
+        assert_eq_precision!(altitude.get::<uom::si::length::foot>(), h_expected_ft, PRECISION);
+    }
+
+    // test data for less than sea level
+    // (pressure (hpa), altitude (feet), precision (f64))
+    let test_data_below_sea_level = [
+        (1.76799e3,  -16_250.0, PRECISION),
+        (1.64246e3,  -14_000.0, PRECISION),
+        (1.53702e3,  -12_000.0, PRECISION),
+        (1.43714e3,  -10_000.0, PRECISION),
+        (1.34258e3,  -8_000.0,  PRECISION),
+        (1.25312e3,  -6_000.0,  PRECISION),
+        (1.16855e3,  -4_000.0,  PRECISION),
+        (1.08866e3,  -2_000.0,  PRECISION),
+    ];
+
+    for (p_pa, h_expected_ft, precision) in test_data_below_sea_level {
+        let pressure = uom::si::f64::Pressure::new::<uom::si::pressure::hectopascal>(p_pa);
+        let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_pressure(pressure).unwrap();
+        assert_eq_precision!(altitude.get::<uom::si::length::foot>(), h_expected_ft, precision);
+    }
+
+    // too low
+    let pressure = uom::si::f64::Pressure::new::<uom::si::pressure::pascal>(0.0);
+    let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_pressure(pressure);
+    assert_eq!(altitude, Err(IsaError::InputOutOfRange), "Pressure is too low out of bounds.");
+
+    // too high
+    let pressure = uom::si::f64::Pressure::new::<uom::si::pressure::pascal>(200_000.0);
+    let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_pressure(pressure);
+    assert_eq!(altitude, Err(IsaError::InputOutOfRange), "Pressure is too high out of bounds.");
+}
+
+/// Test altitude from density and temperature
+#[test]
+fn test_altitude_from_density_and_temperature () {
+    // (density in kg/m^3, temperature in K, expected altitude in feet)
+    let test_data = [
+        (1.92265e0,   320.345,    -16_250.0),
+        //(1.22500e0,   288.150,          0.0),
+        (1.21785e0,   287.754,        200.0),
+        (7.45979e-1,  256.451,     16_000.0),
+        (1.86481e-1,  216.650,     50_000.0),
+        (1.60701e-5,  196.935,    262_000.0),
+
+    ];
+
+    for (rho_kg_m3, t_k, h_expected_ft) in test_data {
+        let density = uom::si::f64::MassDensity::new::<uom::si::mass_density::kilogram_per_cubic_meter>(rho_kg_m3);
+        let temperature = uom::si::f64::ThermodynamicTemperature::new::<uom::si::thermodynamic_temperature::kelvin>(t_k);
+        let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_density_and_temperature(density, temperature).unwrap();
+        assert_eq_precision!(altitude.get::<uom::si::length::foot>(), h_expected_ft, PRECISION);
+    }
+
+    // too low
+    let density = uom::si::f64::MassDensity::new::<uom::si::mass_density::kilogram_per_cubic_meter>(0.0);
+    let temperature = uom::si::f64::ThermodynamicTemperature::new::<uom::si::thermodynamic_temperature::kelvin>(288.15);
+    let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_density_and_temperature(density, temperature);
+    assert_eq!(altitude, Err(IsaError::InputOutOfRange), "Density is too low out of bounds.");
+
+    // too high
+    let density = uom::si::f64::MassDensity::new::<uom::si::mass_density::kilogram_per_cubic_meter>(10.0);
+    let temperature = uom::si::f64::ThermodynamicTemperature::new::<uom::si::thermodynamic_temperature::kelvin>(288.15);
+    let altitude = aero_atmos::InternationalStandardAtmosphere::altitude_from_density_and_temperature(density, temperature);
+    assert_eq!(altitude, Err(IsaError::InputOutOfRange), "Density is too high out of bounds.");
 }

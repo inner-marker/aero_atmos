@@ -1,3 +1,4 @@
 /target
 /Documents
 **/.DS_Store
+src/main.rs
